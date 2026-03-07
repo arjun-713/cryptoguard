@@ -8,7 +8,7 @@ Run: python -m pytest backend/risk/test_rules.py -v
 import asyncio
 import pytest
 
-from backend.risk.rules import (
+from risk.rules import (
     check_blacklist_hit,
     check_tornado_proximity,
     check_peel_chain,
@@ -16,7 +16,7 @@ from backend.risk.rules import (
     check_large_value,
     check_new_wallet,
 )
-from backend.blockchain.constants import TORNADO_CASH_ADDRESSES, RULE_WEIGHTS
+from blockchain.constants import TORNADO_CASH_ADDRESSES, RULE_WEIGHTS
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────

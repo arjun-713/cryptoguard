@@ -5,7 +5,7 @@ Trigger the demo sequence for pitches and presentations.
 """
 
 from fastapi import APIRouter
-from ..blockchain import simulator
+from blockchain import simulator
 
 router = APIRouter(prefix="/api", tags=["demo"])
 

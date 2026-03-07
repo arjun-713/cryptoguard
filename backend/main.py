@@ -10,12 +10,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import settings
-from .db.models import HealthResponse
-from .api.transactions import router as transactions_router
-from .api.actions import router as actions_router
-from .api.demo import router as demo_router
-from .blockchain import simulator
+from config import settings
+from db.models import HealthResponse
+from api.transactions import router as transactions_router
+from api.actions import router as actions_router
+from api.demo import router as demo_router
+from blockchain import simulator
 
 
 # ---------------------------------------------------------------------------
