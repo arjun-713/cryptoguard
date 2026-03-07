@@ -123,7 +123,7 @@ async def fire_demo_sequence() -> None:
     """
     global _tx_counter
 
-    sequence_ids = ["sim_001", "sim_007", "sim_006", "sim_011"]
+    sequence_ids = ["sim_001", "sim_007", "sim_006", "sim_011", "sim_014", "sim_020"]
     data = load_simulation_data()
     all_txs = {tx["id"]: tx for tx in data.get("transactions", [])}
 

@@ -30,7 +30,7 @@ from config import settings
 
 
 def _determine_tier(score: int) -> str:
-    """Map numeric score to risk tier string using configurable thresholds (Fix 5)."""
+    """Map numeric score to risk tier string using configurable thresholds."""
     if score < settings.MONITOR_THRESHOLD:
         return "low"
     elif score < settings.HOLD_THRESHOLD:

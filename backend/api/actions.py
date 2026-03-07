@@ -177,7 +177,7 @@ async def get_actions():
                         "id": row["id"],
                         "tx_id": row["tx_id"],
                         "action": row["action"],
-                        "status": row.get("status", "ACTIVE"),
+                        "status": dict(row).get("status", "ACTIVE"),
                         "analyst_notes": row["analyst_notes"],
                         "actioned_at": row["actioned_at"],
                         "actioned_by": row["actioned_by"],
