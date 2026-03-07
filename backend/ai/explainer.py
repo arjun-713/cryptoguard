@@ -132,7 +132,7 @@ async def generate_explanation(
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
         prompt = _build_prompt(risk_result)
 
         response = model.generate_content(
