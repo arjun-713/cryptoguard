@@ -68,13 +68,14 @@ def test_schema_conformance(simulation_data):
 # Test 2: Wallet store records and retrieves correctly
 # ---------------------------------------------------------------------------
 
-def test_wallet_store_records(sample_tx):
+@pytest.mark.asyncio
+async def test_wallet_store_records(sample_tx):
     """After recording a transaction, both wallets should appear in history."""
     from backend.blockchain import wallet_store
 
     wallet_store.clear()
 
-    wallet_store.record_transaction(sample_tx)
+    await wallet_store.record_transaction(sample_tx)
 
     # From-wallet history
     from_hist = wallet_store.get_wallet_history(sample_tx["from_address"])

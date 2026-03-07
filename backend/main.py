@@ -5,6 +5,7 @@ Start with:
     uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 """
 
+import asyncio
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -70,15 +71,23 @@ async def score_and_broadcast(tx: dict):
     result["auto_held"] = False
     result["auto_monitored"] = False
 
-    if tier == "critical" or score >= 70:
+    from db.stats import increment_stat
+
+    # 1. Total volume stat
+    await increment_stat("total_scored")
+
+    # 2. Threshold checks
+    if score >= settings.HOLD_THRESHOLD:
         notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
         log_action(tx_hash, ActionType.AUTO_HOLD, notes)
         result["auto_held"] = True
+        await increment_stat("auto_held")
         print(f"🔴 AUTO-HOLD triggered for tx {tx_hash} score {score}/100")
-    elif tier == "medium":
+    elif score >= settings.MONITOR_THRESHOLD:
         notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
         log_action(tx_hash, ActionType.AUTO_MONITOR, notes)
         result["auto_monitored"] = True
+        await increment_stat("auto_monitored")
         print(f"🟡 AUTO-MONITOR triggered for tx {tx_hash} score {score}/100")
 
     # AI Explanation
@@ -88,7 +97,7 @@ async def score_and_broadcast(tx: dict):
             explanation += chunk
         result["ai_explanation"] = explanation
 
-    wallet_store.record_transaction(result)
+    await wallet_store.record_transaction(result)
     simulator._tx_counter += 1
     await simulator.broadcast({"type": "new_transaction", "data": result})
 
@@ -98,14 +107,23 @@ async def lifespan(app: FastAPI):
     print("🚀 CryptoGuard backend starting...")
     
     # Initialize database tables
-    from db.suspicious_addresses import init_db
+    from db.database import init_db
     await init_db()
+    
+    # Load historical wallet data (Fix 2)
+    from blockchain.wallet_store import load_wallet_history_from_db, run_nightly_cleanup
+    await load_wallet_history_from_db()
+    asyncio.create_task(run_nightly_cleanup())
+    
+    # OFAC List Refresh (Fix 4)
+    from blockchain.constants import refresh_ofac_list, periodic_ofac_refresh
+    await refresh_ofac_list()
+    asyncio.create_task(periodic_ofac_refresh(86400))
     
     print(f"   Simulation mode: {settings.SIMULATION_MODE}")
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")
 
-    import asyncio
     import logging
     logging.basicConfig(level=logging.INFO)
     if settings.SIMULATION_MODE:
@@ -181,10 +199,12 @@ app.include_router(demo_router)
 @app.get("/health", response_model=HealthResponse, tags=["system"])
 async def health_check():
     """System health check — judges/mentors can hit this to confirm backend is alive."""
+    from blockchain.constants import ofac_last_updated
     return HealthResponse(
         status="ok",
         simulation_mode=settings.SIMULATION_MODE,
         transactions_processed=simulator.get_tx_counter(),
+        ofac_last_updated=ofac_last_updated
     )
 
 

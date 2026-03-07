@@ -21,6 +21,20 @@ function App() {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [activeView, setActiveView] = useState<active_view>('dashboard');
   const [actionLog, setActionLog] = useState<Map<string, ActionType>>(new Map());
+  const [stats, setStats] = useState<any>(null);
+
+  // Fetch metrics (Fix 5)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/stats');
+        if (res.ok) setStats(await res.json());
+      } catch (err) { /* ignore */ }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!selectedTx && transactions.length > 0) {
@@ -121,6 +135,14 @@ function App() {
               <span className="text-xs text-muted-foreground">Alerts:</span>
               <span className="text-xs font-mono font-semibold text-destructive">
                 {alertCount}
+              </span>
+            </div>
+
+            {/* False Positive Rate Stat (Fix 5) */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-md bg-cyan-500/5 border border-cyan-500/20">
+              <span className="text-[10px] font-bold text-cyan-500 uppercase tracking-tight">FP Rate:</span>
+              <span className="text-xs font-mono font-bold text-cyan-500">
+                {stats ? `${(stats.false_positive_rate * 100).toFixed(1)}%` : '--%'}
               </span>
             </div>
 

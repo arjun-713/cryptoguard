@@ -144,3 +144,97 @@ async def get_wallet_history(address: str):
 async def get_suspicious_list():
     """Return the full list of blacklisted or recurring suspicious addresses."""
     return await get_suspicious_addresses()
+
+
+# ---------------------------------------------------------------------------
+# POST /api/broker/withdraw — External Broker Withdrawal (Fix 3)
+# ---------------------------------------------------------------------------
+
+@router.post("/broker/withdraw")
+async def broker_withdraw(body: dict):
+    """
+    Simulate a withdrawal attempt from an external broker.
+    Validates against CryptoGuard's risk engine.
+    """
+    from uuid import uuid4
+    import httpx
+    from config import settings
+    from risk.scorer import score_transaction as risk_score_transaction
+    from blockchain.enricher import enrich_transaction
+    from api.actions import log_action
+    from db.models import ActionType
+
+    sender = body.get("sender")
+    receiver = body.get("receiver")
+    amount = body.get("amount", 0.0)
+    customer_id = body.get("customer_id", "anon")
+
+    if not sender or not receiver:
+        return {"error": "sender and receiver are required"}
+
+    # Mock tx object for the scorer
+    tx = {
+        "id": f"wd-{uuid4().hex[:8]}",
+        "hash": f"wd-{uuid4().hex[:8]}",
+        "from_address": sender,
+        "to_address": receiver,
+        "eth_value": float(amount),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "wallet_history_count": 0,
+        "hop_chain": []
+    }
+
+    # 1. Enrich (if live)
+    if not settings.SIMULATION_MODE and settings.ALCHEMY_HTTP_URL:
+        tx = await enrich_transaction(tx, settings.ALCHEMY_HTTP_URL)
+
+    # 2. Score
+    # Fetch local history for enrichment
+    from backend.blockchain.bad_actors import BAD_ACTORS
+    from db.stats import increment_stat
+    await increment_stat("total_scored")
+
+    history = wallet_store.get_wallet_history(sender, limit=10)
+    result = await risk_score_transaction(tx, {sender: history}, blacklist=BAD_ACTORS)
+
+    score = result.get("risk_score", 0)
+    tier = result.get("risk_tier", "low")
+    triggered = result.get("triggered_rules", [])
+
+    # 3. Decision logic
+    status = "APPROVED"
+    if score >= settings.HOLD_THRESHOLD:
+        status = "HELD"
+        await increment_stat("auto_held")
+    elif score >= settings.MONITOR_THRESHOLD:
+        status = "MONITOR"
+        await increment_stat("auto_monitored")
+
+    # 4. Auto-hold persistence
+    action_id = None
+    if status == "HELD":
+        notes = f"Auto-held via Broker API. Score: {score}. Customer: {customer_id}"
+        record = log_action(tx["id"], ActionType.AUTO_HOLD, notes)
+        action_id = record["id"]
+
+    # 5. Optional Webhook Decision
+    if settings.BROKER_WEBHOOK_URL:
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(settings.BROKER_WEBHOOK_URL, json={
+                    "tx_id": tx["id"],
+                    "status": status,
+                    "score": score,
+                    "customer_id": customer_id
+                }, timeout=2.0)
+        except Exception as e:
+            print(f"⚠️ Webhook failed for {tx['id']}: {e}")
+
+    return {
+        "status": status,
+        "score": score,
+        "tier": tier,
+        "reason": f"Transaction score is {score}/100 based on {len(triggered)} suspicious signals.",
+        "action_id": action_id,
+        "triggered_rules": triggered
+    }

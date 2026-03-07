@@ -113,3 +113,53 @@ async def escalate_transaction(body: dict):
 async def get_actions():
     """Return all case actions (most recent first)."""
     return list(reversed(_action_log))
+
+
+# ---------------------------------------------------------------------------
+# GET /api/stats — System Precision Statistics (Fix 5)
+# ---------------------------------------------------------------------------
+
+@router.get("/stats")
+async def get_stats():
+    """Return precision metrics, false positive rates, and total volume."""
+    from db.stats import get_current_stats
+    return get_current_stats()
+
+
+# ---------------------------------------------------------------------------
+# POST /api/actions/release — Release an AUTO-HOLD (Fix 5)
+# ---------------------------------------------------------------------------
+
+@router.post("/actions/release")
+async def release_transaction(body: dict):
+    """Mark an auto-held transaction as a false positive and release it."""
+    from db.stats import increment_stat
+    tx_id = body.get("tx_id") or body.get("tx_hash", "")
+    
+    if not tx_id:
+        return {"error": "tx_id is required"}
+
+    # 1. Increment manual_releases counter
+    await increment_stat("manual_releases")
+
+    # 2. Update the case record status
+    released = False
+    for action in _action_log:
+        if action["tx_id"] == tx_id:
+            action["status"] = "RELEASED"
+            action["analyst_notes"] = (action.get("analyst_notes") or "") + " [ANALYST RELEASED]"
+            released = True
+            
+    return {"status": "released" if released else "stat_recorded", "tx_id": tx_id}
+
+
+# ---------------------------------------------------------------------------
+# POST /api/actions/confirm — Confirm a scam (Fix 5)
+# ---------------------------------------------------------------------------
+
+@router.post("/actions/confirm")
+async def confirm_transaction(body: dict):
+    """Manually confirm that an AUTO-HOLD was correct."""
+    from db.stats import increment_stat
+    await increment_stat("confirmed_scams")
+    return {"status": "confirmed"}

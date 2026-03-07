@@ -1,8 +1,6 @@
-"""
-CryptoGuard — Blockchain Constants & Threshold Configuration
-All known-bad addresses, DEX routers, and scoring thresholds live here.
-No file should hardcode these values elsewhere — import from this module.
-"""
+import httpx
+import asyncio
+from datetime import datetime, timezone
 
 # =============================================================================
 # KNOWN SANCTIONED / MIXER ADDRESSES (OFAC-listed Tornado Cash contracts)
@@ -13,6 +11,54 @@ TORNADO_CASH_ADDRESSES: frozenset[str] = frozenset({
     "0xfd8610d20aa15b7b2e3be39b396a1bc3516c7144",
     "0x07687e702b410fa43f4cb4af7fa097918ffd2730",
 })
+
+ofac_last_updated: str = "Never"
+
+async def refresh_ofac_list():
+    """Fetch live OFAC list from ultrasoundmoney/ofac-ethereum-addresses (Fix 4)."""
+    global TORNADO_CASH_ADDRESSES, ofac_last_updated
+    # Try CSV as primary since JSON is missing in repo
+    url = "https://raw.githubusercontent.com/ultrasoundmoney/ofac-ethereum-addresses/main/data.csv"
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=10.0)
+            if response.status_code == 200:
+                content = response.text
+                new_addresses = []
+                
+                # Simple CSV parsing (address is first column)
+                for line in content.splitlines():
+                    if line.strip():
+                        parts = line.split(",")
+                        addr = parts[0].strip().strip('"').lower()
+                        if addr.startswith("0x") and len(addr) == 42:
+                            new_addresses.append(addr)
+                
+                if new_addresses:
+                    # Merge with seed addresses to be safe (Fix 4)
+                    seed_addresses = {
+                        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+                        "0x910cbd523d972eb0a6f4cae4618ad62622b39dbf",
+                        "0xfd8610d20aa15b7b2e3be39b396a1bc3516c7144",
+                        "0x07687e702b410fa43f4cb4af7fa097918ffd2730",
+                    }
+                    all_ofac = seed_addresses | set(new_addresses)
+                    TORNADO_CASH_ADDRESSES = frozenset(addr.lower() for addr in all_ofac)
+                    ofac_last_updated = datetime.now(timezone.utc).isoformat()
+                    print(f"✅ OFAC list refreshed: {len(TORNADO_CASH_ADDRESSES)} addresses loaded (merged with seed).")
+                else:
+                    print("⚠️ OFAC refresh returned no addresses, keeping existing list.")
+            else:
+                print(f"⚠️ OFAC refresh failed with status {response.status_code}")
+    except Exception as e:
+        print(f"⚠️ OFAC refresh error: {e}")
+
+async def periodic_ofac_refresh(interval: int):
+    """Periodically refresh the OFAC list in the background (Fix 4)."""
+    while True:
+        await asyncio.sleep(interval)
+        await refresh_ofac_list()
 
 # =============================================================================
 # DEX ROUTER ADDRESSES (legitimate but worth noting for flow analysis)

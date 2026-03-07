@@ -108,3 +108,4 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     simulation_mode: bool = True
     transactions_processed: int = 0
+    ofac_last_updated: str = "Never"

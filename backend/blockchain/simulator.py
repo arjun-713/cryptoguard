@@ -199,7 +199,7 @@ async def run_simulation_loop() -> None:
             async with _demo_lock:
                 # Enrich and broadcast
                 enriched = _enrich_transaction(raw_tx)
-                wallet_store.record_transaction(enriched)
+                await wallet_store.record_transaction(enriched)
                 _tx_counter += 1
 
                 await broadcast({

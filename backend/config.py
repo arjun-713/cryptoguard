@@ -27,6 +27,11 @@ class Settings:
     PORT: int = int(os.getenv("PORT", "8000"))
     SIMULATION_MODE: bool = os.getenv("SIMULATION_MODE", "true").lower() == "true"
     SIMULATION_DATA_PATH: str = os.getenv("SIMULATION_DATA_PATH", "docs/simulation-data.json")
+    
+    # Feature Toggles (Fix 3 & 5)
+    BROKER_WEBHOOK_URL: str = os.getenv("BROKER_WEBHOOK_URL", "")
+    HOLD_THRESHOLD: int = int(os.getenv("HOLD_THRESHOLD", "70"))
+    MONITOR_THRESHOLD: int = int(os.getenv("MONITOR_THRESHOLD", "40"))
 
 
 settings = Settings()

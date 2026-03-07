@@ -26,11 +26,14 @@ from risk.rules import (  # type: ignore
 )
 
 
+from config import settings
+
+
 def _determine_tier(score: int) -> str:
-    """Map numeric score to risk tier string."""
-    if score <= TIER_LOW_MAX:
+    """Map numeric score to risk tier string using configurable thresholds (Fix 5)."""
+    if score < settings.MONITOR_THRESHOLD:
         return "low"
-    elif score <= TIER_MEDIUM_MAX:
+    elif score < settings.HOLD_THRESHOLD:
         return "medium"
     else:
         return "critical"
