@@ -88,7 +88,7 @@ async def score_transaction(
     to_w = tx.get("to_wallets", [])
     amts = tx.get("amounts", [])
     
-    if not tx.get("to_address") and not to_w:
+    if not tx.get("to_address") and not tx.get("to") and not to_w:
         # No destination address specified — highly unusual structure
         base_score_modifier += 15
         
