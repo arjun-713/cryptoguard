@@ -1,0 +1,419 @@
+{
+  "meta": {
+    "description": "CryptoGuard simulation dataset — realistic Ethereum transaction patterns for demo and development",
+    "version": "1.0",
+    "total_transactions": 60,
+    "scenarios": ["normal_activity", "peel_chain", "mixer_proximity", "high_velocity", "rug_pull_exit", "exchange_cashout"]
+  },
+
+  "wallets": {
+    "clean": [
+      { "address": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b", "label": "Coinbase Hot Wallet", "risk": 0 },
+      { "address": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c", "label": "Binance Deposit", "risk": 0 },
+      { "address": "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d", "label": "Uniswap Router", "risk": 0 },
+      { "address": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e", "label": "Regular User A", "risk": 2 },
+      { "address": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f", "label": "Regular User B", "risk": 5 }
+    ],
+    "suspicious": [
+      { "address": "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3", "label": "Tornado Cash Pool", "risk": 100, "flags": ["OFAC_SANCTIONED", "MIXER"] },
+      { "address": "0x910cbd523d972eb0a6f4cae4618ad62622b39dbf", "label": "Tornado Cash Router", "risk": 100, "flags": ["OFAC_SANCTIONED", "MIXER"] },
+      { "address": "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12", "label": "Peel Chain Wallet 1", "risk": 85, "flags": ["PEEL_CHAIN_ACTOR"] },
+      { "address": "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23", "label": "Peel Chain Wallet 2", "risk": 82, "flags": ["PEEL_CHAIN_ACTOR"] },
+      { "address": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34", "label": "High Velocity Spammer", "risk": 71, "flags": ["HIGH_VELOCITY"] },
+      { "address": "0xde45fa67bc89de45fa67bc89de45fa67bc89de45", "label": "New Wallet Large Tx", "risk": 45, "flags": ["NEW_WALLET", "LARGE_VALUE"] },
+      { "address": "0xef56ab78cd90ef56ab78cd90ef56ab78cd90ef56", "label": "Rug Pull Deployer", "risk": 93, "flags": ["RUG_PULL_PATTERN", "BLACKLIST_HIT"] }
+    ]
+  },
+
+  "transactions": [
+    {
+      "id": "sim_001",
+      "hash": "0x3f9a1b2c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "from": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "to": "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "eth_value": 0.25,
+      "gas_price_gwei": 18.4,
+      "nonce": 142,
+      "scenario": "normal_activity",
+      "risk_score": 5,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 0,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_002",
+      "hash": "0x4a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "from": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "to": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+      "eth_value": 1.1,
+      "gas_price_gwei": 22.1,
+      "nonce": 87,
+      "scenario": "normal_activity",
+      "risk_score": 8,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 4,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_003",
+      "hash": "0x5b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+      "from": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "to": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "eth_value": 0.08,
+      "gas_price_gwei": 15.7,
+      "nonce": 143,
+      "scenario": "normal_activity",
+      "risk_score": 3,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 9,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_004",
+      "hash": "0x6c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "from": "0xde45fa67bc89de45fa67bc89de45fa67bc89de45",
+      "to": "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "eth_value": 12.5,
+      "gas_price_gwei": 45.2,
+      "nonce": 1,
+      "scenario": "new_wallet_large_tx",
+      "risk_score": 30,
+      "risk_tier": "low",
+      "triggered_rules": ["NEW_WALLET", "LARGE_VALUE"],
+      "timestamp_offset_seconds": 14,
+      "ai_explanation": "A wallet created 3 days ago is transacting 12.5 ETH — unusually high for a new address. While not definitively malicious, new wallets handling large values warrant monitoring as they are commonly used in layering schemes."
+    },
+    {
+      "id": "sim_005",
+      "hash": "0x7d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "from": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "to": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "eth_value": 0.5,
+      "gas_price_gwei": 19.8,
+      "nonce": 201,
+      "scenario": "normal_activity",
+      "risk_score": 4,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 18,
+      "ai_explanation": null
+    },
+
+    {
+      "id": "sim_006",
+      "hash": "0x8e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "from": "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+      "to": "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+      "eth_value": 49.8,
+      "gas_price_gwei": 52.3,
+      "nonce": 4421,
+      "scenario": "mixer_proximity",
+      "risk_score": 75,
+      "risk_tier": "critical",
+      "triggered_rules": ["TORNADO_PROXIMITY", "BLACKLIST_HIT", "LARGE_VALUE"],
+      "hop_chain": [
+        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      ],
+      "timestamp_offset_seconds": 23,
+      "ai_explanation": "Wallet 0xab12...b12 received 49.8 ETH directly from Tornado Cash (0xd4b8...fa3), an OFAC-sanctioned mixer. This wallet has no prior transaction history, indicating it was created specifically to receive these funds. Immediate hold and SAR filing strongly recommended — this pattern is consistent with post-mixing fund placement."
+    },
+    {
+      "id": "sim_007",
+      "hash": "0x9f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a",
+      "from": "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+      "to": "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23",
+      "eth_value": 24.9,
+      "gas_price_gwei": 53.1,
+      "nonce": 1,
+      "scenario": "peel_chain",
+      "risk_score": 82,
+      "risk_tier": "critical",
+      "triggered_rules": ["TORNADO_PROXIMITY", "PEEL_CHAIN", "LARGE_VALUE"],
+      "hop_chain": [
+        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+        "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23"
+      ],
+      "timestamp_offset_seconds": 27,
+      "ai_explanation": "Peel chain in progress. Wallet 0xab12 received 49.8 ETH from Tornado Cash 4 minutes ago and has now re-routed exactly 50% (24.9 ETH) to a new wallet 0xbc23. This halving-and-forwarding pattern (known as a peel chain) is a textbook laundering technique to obscure fund origin across multiple hops."
+    },
+    {
+      "id": "sim_008",
+      "hash": "0xa06b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+      "from": "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+      "to": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34",
+      "eth_value": 24.7,
+      "gas_price_gwei": 53.1,
+      "nonce": 2,
+      "scenario": "peel_chain",
+      "risk_score": 85,
+      "risk_tier": "critical",
+      "triggered_rules": ["TORNADO_PROXIMITY", "PEEL_CHAIN", "LARGE_VALUE", "HIGH_VELOCITY"],
+      "hop_chain": [
+        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+        "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34"
+      ],
+      "timestamp_offset_seconds": 29,
+      "ai_explanation": "Second split from the same peel chain wallet within 2 minutes. Wallet 0xab12 has now distributed 99.2% of the 49.8 ETH received from Tornado Cash across two new wallets. High velocity (2 outbound transactions in 120 seconds) combined with mixer origin confirms active laundering in progress."
+    },
+
+    {
+      "id": "sim_009",
+      "hash": "0xb17c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c",
+      "from": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34",
+      "to": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "eth_value": 0.3,
+      "gas_price_gwei": 20.1,
+      "nonce": 55,
+      "scenario": "normal_activity",
+      "risk_score": 6,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 35,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_010",
+      "hash": "0xc28d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d",
+      "from": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "to": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+      "eth_value": 2.2,
+      "gas_price_gwei": 21.5,
+      "nonce": 144,
+      "scenario": "normal_activity",
+      "risk_score": 20,
+      "risk_tier": "low",
+      "triggered_rules": ["LARGE_VALUE"],
+      "timestamp_offset_seconds": 40,
+      "ai_explanation": null
+    },
+
+    {
+      "id": "sim_011",
+      "hash": "0xd39e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e",
+      "from": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34",
+      "to": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "eth_value": 4.1,
+      "gas_price_gwei": 88.0,
+      "nonce": 0,
+      "scenario": "high_velocity",
+      "risk_score": 45,
+      "risk_tier": "medium",
+      "triggered_rules": ["HIGH_VELOCITY", "LARGE_VALUE"],
+      "timestamp_offset_seconds": 43,
+      "ai_explanation": "Wallet 0xcd34 has submitted 6 transactions in the last 58 seconds with a total outflow of 18.4 ETH. This velocity pattern is inconsistent with normal user behavior and is commonly seen in automated laundering scripts that distribute funds rapidly before detection."
+    },
+    {
+      "id": "sim_012",
+      "hash": "0xe40f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
+      "from": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34",
+      "to": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "eth_value": 3.8,
+      "gas_price_gwei": 89.2,
+      "nonce": 1,
+      "scenario": "high_velocity",
+      "risk_score": 48,
+      "risk_tier": "medium",
+      "triggered_rules": ["HIGH_VELOCITY", "LARGE_VALUE"],
+      "timestamp_offset_seconds": 47,
+      "ai_explanation": "Same wallet — 7th transaction in under 60 seconds. Outflow continues to diverse recipients. Automated distribution confirmed."
+    },
+    {
+      "id": "sim_013",
+      "hash": "0xf51a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+      "from": "0xcd34ef56ab78cd34ef56ab78cd34ef56ab78cd34",
+      "to": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "eth_value": 3.5,
+      "gas_price_gwei": 91.0,
+      "nonce": 2,
+      "scenario": "high_velocity",
+      "risk_score": 51,
+      "risk_tier": "medium",
+      "triggered_rules": ["HIGH_VELOCITY", "LARGE_VALUE"],
+      "timestamp_offset_seconds": 51,
+      "ai_explanation": "Continuing pattern. 8th outbound transaction from 0xcd34 within 60 seconds."
+    },
+
+    {
+      "id": "sim_014",
+      "hash": "0x062b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+      "from": "0xef56ab78cd90ef56ab78cd90ef56ab78cd90ef56",
+      "to": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+      "eth_value": 87.4,
+      "gas_price_gwei": 120.5,
+      "nonce": 3,
+      "scenario": "rug_pull_exit",
+      "risk_score": 93,
+      "risk_tier": "critical",
+      "triggered_rules": ["BLACKLIST_HIT", "LARGE_VALUE", "PEEL_CHAIN", "HIGH_VELOCITY"],
+      "hop_chain": [
+        "0xef56ab78cd90ef56ab78cd90ef56ab78cd90ef56",
+        "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c"
+      ],
+      "timestamp_offset_seconds": 57,
+      "ai_explanation": "CRITICAL: Wallet 0xef56 appears on the MEW dark list as a known rug pull deployer. This 87.4 ETH transfer to a Binance deposit address represents a likely exit of stolen funds. The gas price of 120.5 Gwei (5x current average) indicates urgency — this actor is willing to pay a premium to move funds quickly. Immediate freeze and law enforcement notification recommended."
+    },
+
+    {
+      "id": "sim_015",
+      "hash": "0x173c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+      "from": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "to": "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "eth_value": 0.15,
+      "gas_price_gwei": 17.2,
+      "nonce": 202,
+      "scenario": "normal_activity",
+      "risk_score": 3,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 63,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_016",
+      "hash": "0x284d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d",
+      "from": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "to": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "eth_value": 0.42,
+      "gas_price_gwei": 19.1,
+      "nonce": 145,
+      "scenario": "normal_activity",
+      "risk_score": 4,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 68,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_017",
+      "hash": "0x395e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
+      "from": "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23",
+      "to": "0xde45fa67bc89de45fa67bc89de45fa67bc89de45",
+      "eth_value": 24.5,
+      "gas_price_gwei": 55.0,
+      "nonce": 1,
+      "scenario": "peel_chain",
+      "risk_score": 88,
+      "risk_tier": "critical",
+      "triggered_rules": ["TORNADO_PROXIMITY", "PEEL_CHAIN", "LARGE_VALUE"],
+      "hop_chain": [
+        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+        "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23",
+        "0xde45fa67bc89de45fa67bc89de45fa67bc89de45"
+      ],
+      "timestamp_offset_seconds": 74,
+      "ai_explanation": "Fourth hop in a confirmed peel chain originating from Tornado Cash. Funds have now passed through 3 intermediate wallets in under 12 minutes. The chain is progressing toward exchange deposit addresses — the final destination is likely an exchange cashout. All wallets in this chain should be frozen and cross-reported."
+    },
+
+    {
+      "id": "sim_018",
+      "hash": "0x4a6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f",
+      "from": "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "to": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "eth_value": 0.78,
+      "gas_price_gwei": 20.3,
+      "nonce": 146,
+      "scenario": "normal_activity",
+      "risk_score": 7,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 80,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_019",
+      "hash": "0x5b7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a",
+      "from": "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+      "to": "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "eth_value": 1.9,
+      "gas_price_gwei": 22.8,
+      "nonce": 203,
+      "scenario": "normal_activity",
+      "risk_score": 20,
+      "risk_tier": "low",
+      "triggered_rules": [],
+      "timestamp_offset_seconds": 85,
+      "ai_explanation": null
+    },
+    {
+      "id": "sim_020",
+      "hash": "0x6c8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b",
+      "from": "0xde45fa67bc89de45fa67bc89de45fa67bc89de45",
+      "to": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "eth_value": 24.3,
+      "gas_price_gwei": 56.2,
+      "nonce": 2,
+      "scenario": "peel_chain_final",
+      "risk_score": 91,
+      "risk_tier": "critical",
+      "triggered_rules": ["TORNADO_PROXIMITY", "PEEL_CHAIN", "LARGE_VALUE", "BLACKLIST_HIT"],
+      "hop_chain": [
+        "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "0xab12cd34ef56ab12cd34ef56ab12cd34ef56ab12",
+        "0xbc23de45fa67bc23de45fa67bc23de45fa67bc23",
+        "0xde45fa67bc89de45fa67bc89de45fa67bc89de45",
+        "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+      ],
+      "timestamp_offset_seconds": 91,
+      "ai_explanation": "CRITICAL — FINAL HOP DETECTED: 24.3 ETH arriving at what appears to be a Coinbase deposit address after 4 laundering hops from Tornado Cash in the last 15 minutes. If this deposit is processed, the funds will be commingled with legitimate exchange liquidity and recovery becomes extremely difficult. Immediate exchange-level hold required. Full hop chain preserved for law enforcement reporting."
+    }
+  ],
+
+  "playback_config": {
+    "mode": "timed",
+    "description": "Play transactions at timestamp_offset_seconds intervals for a realistic demo. Total runtime ~91 seconds for one full scenario cycle.",
+    "loop": true,
+    "loop_delay_seconds": 15,
+    "highlight_critical_ids": ["sim_006", "sim_007", "sim_008", "sim_014", "sim_017", "sim_020"],
+    "demo_talking_points": {
+      "sim_006": "Watch — this is a live Tornado Cash withdrawal hitting our system RIGHT NOW",
+      "sim_007": "The peel chain is starting — same funds, already splitting to a new wallet",
+      "sim_014": "This is a rug pull exit — 87 ETH, known bad actor, heading to exchange",
+      "sim_020": "Final hop — if we don't freeze this in the next 10 seconds, it lands on Coinbase"
+    }
+  },
+
+  "seeded_case_log": [
+    {
+      "tx_id": "sim_006",
+      "action": "hold",
+      "analyst_notes": "Tornado Cash direct withdrawal. Filed SAR #2024-ETH-00441.",
+      "actioned_at": "2025-03-01T03:18:42Z",
+      "actioned_by": "analyst_01"
+    },
+    {
+      "tx_id": "sim_014",
+      "action": "escalate",
+      "analyst_notes": "Known rug pull deployer. Coordinating with exchange compliance team. Case opened.",
+      "actioned_at": "2025-03-01T04:02:11Z",
+      "actioned_by": "analyst_02"
+    },
+    {
+      "tx_id": "sim_007",
+      "action": "hold",
+      "analyst_notes": "Part of the 0xd4b8 peel chain. All chain wallets flagged.",
+      "actioned_at": "2025-03-01T03:19:05Z",
+      "actioned_by": "analyst_01"
+    },
+    {
+      "tx_id": "sim_017",
+      "action": "escalate",
+      "analyst_notes": "4-hop chain now confirmed. Briefed legal. Exchange notified.",
+      "actioned_at": "2025-03-01T03:23:58Z",
+      "actioned_by": "analyst_01"
+    },
+    {
+      "tx_id": "sim_011",
+      "action": "monitor",
+      "analyst_notes": "High velocity — watching for further unusual activity from this wallet.",
+      "actioned_at": "2025-03-01T05:44:17Z",
+      "actioned_by": "analyst_03"
+    }
+  ]
+}
