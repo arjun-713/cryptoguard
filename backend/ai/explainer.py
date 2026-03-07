@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 from typing import Any, AsyncGenerator
 
-import google.generativeai as genai
+import google.generativeai as genai  # type: ignore
 
 
 # ---------------------------------------------------------------------------

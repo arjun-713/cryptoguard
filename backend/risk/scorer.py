@@ -11,12 +11,12 @@ This function MUST complete in <10ms.  No network calls.
 import time
 from typing import Any
 
-from backend.blockchain.constants import (
+from backend.blockchain.constants import (  # type: ignore
     RULE_WEIGHTS,
     TIER_LOW_MAX,
     TIER_MEDIUM_MAX,
 )
-from backend.risk.rules import (
+from backend.risk.rules import (  # type: ignore
     check_blacklist_hit,
     check_tornado_proximity,
     check_peel_chain,
@@ -115,13 +115,13 @@ async def score_transaction(
     ]
 
     triggered_rules: list[str] = []
-    total_score: int = tx.get("_base_modifier", 0)
+    total_score: int = int(tx.get("_base_modifier", 0))
 
     for rule_name, rule_coro in rules:
         triggered, contribution = await rule_coro
         if triggered:
             triggered_rules.append(rule_name)
-            total_score += contribution
+            total_score += contribution  # type: ignore
 
     # Cap at 100
     total_score = min(total_score, 100)

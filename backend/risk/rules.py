@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.blockchain.constants import (
+from backend.blockchain.constants import (  # type: ignore
     TORNADO_CASH_ADDRESSES,
     RULE_WEIGHTS,
     VELOCITY_WINDOW_SECONDS,
@@ -191,7 +191,7 @@ async def check_high_velocity(
         for past in history:
             pt = _parse_ts(past.get("timestamp"))
             if pt and abs((tx_time - pt).total_seconds()) <= VELOCITY_WINDOW_SECONDS:
-                count += 1
+                count += 1  # type: ignore
         if count > VELOCITY_THRESHOLD:
             return True, RULE_WEIGHTS["HIGH_VELOCITY"]
     else:
