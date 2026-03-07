@@ -190,7 +190,7 @@ async def broker_withdraw(body: dict):
 
     # 2. Score
     # Fetch local history for enrichment
-    from backend.blockchain.bad_actors import BAD_ACTORS
+    from blockchain.bad_actors import BAD_ACTORS
     from db.stats import increment_stat
     await increment_stat("total_scored")
 

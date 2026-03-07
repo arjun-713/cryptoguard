@@ -1,5 +1,5 @@
 import aiosqlite
-from backend.config import settings
+from config import settings
 
 DB_PATH = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
 

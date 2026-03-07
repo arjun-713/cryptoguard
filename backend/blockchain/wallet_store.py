@@ -10,7 +10,7 @@ import asyncio
 from collections import defaultdict
 from typing import Any
 from datetime import datetime, timedelta, timezone
-from backend.config import settings
+from config import settings
 
 DB_PATH = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
 

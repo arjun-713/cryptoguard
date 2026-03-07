@@ -112,7 +112,7 @@ async def escalate_transaction(body: dict):
 @router.get("/actions")
 async def get_actions():
     """Return all case actions (most recent first) along with full tx details."""
-    from backend.blockchain.wallet_store import get_transaction_by_id
+    from blockchain.wallet_store import get_transaction_by_id
     
     enriched_actions = []
     for action in reversed(_action_log):
