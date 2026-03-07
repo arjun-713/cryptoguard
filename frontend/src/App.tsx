@@ -20,7 +20,7 @@ function App() {
   const { transactions, isConnected, isDemoMode, setDemoMode, resetFeed, error } = useTransactionStream();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [activeView, setActiveView] = useState<active_view>('dashboard');
-  const [, setActionLog] = useState<Map<string, ActionType>>(new Map());
+  const [actionLog, setActionLog] = useState<Map<string, ActionType>>(new Map());
 
   useEffect(() => {
     if (!selectedTx && transactions.length > 0) {
@@ -165,6 +165,7 @@ function App() {
                 transactions={transactions}
                 selectedTxId={selectedTx?.id ?? null}
                 onSelect={handleSelect}
+                actionLog={actionLog}
               />
             </Card>
 
@@ -182,7 +183,7 @@ function App() {
             <div className="w-[280px] shrink-0 min-h-0 flex flex-col gap-3">
               <Card className="h-[200px] shrink-0 flex flex-col border-primary/10">
                 <ActionButtons
-                  selectedTxId={selectedTx?.id ?? null}
+                  transaction={selectedTx}
                   onAction={handleAction}
                 />
               </Card>

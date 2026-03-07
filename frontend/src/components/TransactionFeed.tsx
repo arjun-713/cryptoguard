@@ -1,16 +1,18 @@
-import type { Transaction } from '@/data/types';
+import type { Transaction, ActionType } from '@/data/types';
 import { truncateAddress, formatEth, timeAgo, getRiskTier, getRiskColor } from '@/data/types';
 import { walletLabels } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import HashLink from '@/components/HashLink';
 
 interface TransactionFeedProps {
     transactions: Transaction[];
     selectedTxId: string | null;
     onSelect: (tx: Transaction) => void;
+    actionLog?: Map<string, ActionType>;
 }
 
-export default function TransactionFeed({ transactions, selectedTxId, onSelect }: TransactionFeedProps) {
+export default function TransactionFeed({ transactions, selectedTxId, onSelect, actionLog }: TransactionFeedProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b">
@@ -57,9 +59,10 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect }
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-xs text-muted-foreground">
+                                            <span className="text-xs text-muted-foreground block mb-1">
                                                 → {truncateAddress(tx.to)}
                                             </span>
+                                            <HashLink hash={tx.hash} />
                                         </div>
 
                                         <div className="text-right shrink-0">
@@ -73,12 +76,25 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect }
 
                                         <div className="flex flex-col items-end gap-1.5 shrink-0 ml-1">
                                             <div className="flex items-center gap-1.5">
-                                                {tx.auto_held && (
+                                                {/* Manual Action Badges */}
+                                                {actionLog?.get(tx.id) === 'hold' && (
+                                                    <Badge variant="destructive" className="text-[9px] h-4 px-1.5 uppercase font-bold bg-red-900 border-red-500">
+                                                        HELD
+                                                    </Badge>
+                                                )}
+                                                {actionLog?.get(tx.id) === 'monitor' && (
+                                                    <Badge className="bg-yellow-600 text-white text-[9px] h-4 px-1.5 uppercase font-bold">
+                                                        WATCHED
+                                                    </Badge>
+                                                )}
+
+                                                {/* Automated Action Badges (only if not manually held) */}
+                                                {tx.auto_held && actionLog?.get(tx.id) !== 'hold' && (
                                                     <Badge variant="destructive" className="text-[9px] h-4 px-1 px-1.5 uppercase font-bold animate-pulse">
                                                         AUTO-HELD
                                                     </Badge>
                                                 )}
-                                                {tx.auto_monitored && (
+                                                {tx.auto_monitored && actionLog?.get(tx.id) !== 'monitor' && (
                                                     <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] h-4 px-1.5 uppercase font-bold">
                                                         AUTO-MONITORED
                                                     </Badge>

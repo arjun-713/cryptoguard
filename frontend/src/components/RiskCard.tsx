@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ShieldAlert, ShieldCheck, Eye, AlertTriangle } from 'lucide-react';
+import HashLink from '@/components/HashLink';
 
 interface RiskCardProps {
     transaction: Transaction | null;
@@ -43,7 +44,7 @@ export default function RiskCard({ transaction }: RiskCardProps) {
                 <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Risk Assessment
                 </h2>
-                <span className="font-mono text-xs text-muted-foreground">{transaction.id}</span>
+                <HashLink hash={transaction.hash} />
             </div>
 
             {/* Score + tier — compact horizontal row */}
