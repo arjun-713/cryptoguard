@@ -22,6 +22,24 @@ from .blockchain import simulator
 # Lifespan — startup / shutdown hooks
 # ---------------------------------------------------------------------------
 
+async def score_and_broadcast(tx: dict):
+    from risk.scorer import score_transaction
+    from ai.explainer import generate_explanation
+    from blockchain import wallet_store
+
+    history = wallet_store.get_wallet_history(tx.get("from_address", ""), limit=10)
+    result = await score_transaction(tx, history)
+    
+    if result.get("risk_tier") in ("medium", "critical"):
+        explanation = ""
+        async for chunk in generate_explanation(result):
+            explanation += chunk
+        result["ai_explanation"] = explanation
+
+    wallet_store.record_transaction(result)
+    simulator._tx_counter += 1
+    await simulator.broadcast({"type": "new_transaction", "data": result})
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs on startup and shutdown."""
@@ -30,9 +48,21 @@ async def lifespan(app: FastAPI):
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")
 
-    # Start the mock mempool simulation if in simulation mode
+    import asyncio
     if settings.SIMULATION_MODE:
-        await simulator.start_simulation()
+        import logging
+        logging.info("Starting in SIMULATION MODE")
+        asyncio.create_task(simulator.start_simulation())
+    else:
+        import logging
+        logging.info("Starting in LIVE MODE — connecting to Ethereum mempool")
+        from blockchain.stream import start_blockchain_listener
+        asyncio.create_task(
+            start_blockchain_listener(
+                alchemy_wss_url=settings.ALCHEMY_WSS_URL,
+                score_and_broadcast=score_and_broadcast,
+            )
+        )
 
     yield
 
