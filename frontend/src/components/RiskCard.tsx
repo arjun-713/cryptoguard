@@ -1,9 +1,10 @@
 import type { Transaction } from '@/data/types';
 import { getRiskTier, getRiskColor, getRiskLabel, formatRuleName } from '@/data/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ShieldAlert, ShieldCheck, Eye, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Eye, AlertTriangle, Copy } from 'lucide-react';
 import HashLink from '@/components/HashLink';
 
 interface RiskCardProps {
@@ -44,7 +45,20 @@ export default function RiskCard({ transaction }: RiskCardProps) {
                 <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Risk Assessment
                 </h2>
-                <HashLink hash={transaction.hash} />
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[10px] gap-1.5 hover:bg-cyan-500/10 hover:text-cyan-500 transition-all border border-transparent hover:border-cyan-500/30"
+                        onClick={() => {
+                            navigator.clipboard.writeText(transaction.hash);
+                            // We could add a local toast here too, but App level might be better
+                        }}
+                    >
+                        <Copy className="w-3 h-3" /> COPY HASH
+                    </Button>
+                    <HashLink hash={transaction.hash} />
+                </div>
             </div>
 
             {/* Score + tier — compact horizontal row */}

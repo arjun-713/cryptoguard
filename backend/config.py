@@ -16,6 +16,7 @@ class Settings:
     """Typed configuration object for the entire backend."""
 
     ALCHEMY_WSS_URL: str = os.getenv("ALCHEMY_WSS_URL", "")
+    ALCHEMY_HTTP_URL: str = os.getenv("ALCHEMY_HTTP_URL", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./cryptoguard.db")
     CORS_ORIGINS: list[str] = [

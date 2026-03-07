@@ -28,7 +28,12 @@ async def score_and_broadcast(tx: dict):
     from blockchain import wallet_store
     from db.suspicious_addresses import record_suspicious_address, is_known_suspicious
     from api.actions import log_action
+    from blockchain.enricher import enrich_transaction
     from db.models import ActionType
+
+    # FEATURE: Real-world Enrichment (Hop Chain)
+    if not settings.SIMULATION_MODE and settings.ALCHEMY_HTTP_URL:
+        tx = await enrich_transaction(tx, settings.ALCHEMY_HTTP_URL)
 
     from_addr = tx.get("from_address", "")
     to_addr = tx.get("to_address", "")
