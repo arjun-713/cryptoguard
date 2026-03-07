@@ -118,6 +118,11 @@ async def generate_explanation(
         yield existing
         return
 
+    # ── Priority 1.5: Do not call AI for Low Risk ──
+    if risk_result.get("risk_tier", "low") == "low":
+        yield _build_fallback(risk_result)
+        return
+
     # ── Priority 2: live Gemini API call with streaming ──
     api_key = os.getenv("GEMINI_API_KEY", "")
     if not api_key:
