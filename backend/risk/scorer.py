@@ -75,6 +75,32 @@ async def score_transaction(
         blacklist = set()
 
     start_ms = int(time.time() * 1000)
+    
+    # ------------------------------------------------------------------
+    # Pre-scoring Edge Case Hardening (Phase 4)
+    # ------------------------------------------------------------------
+    # 1. Missing history
+    if not wallet_history.get(tx.get("from_address", "")):
+        pass  # Defaults empty, won't crash
+
+    # 2 & 5. Empty destinations and array length mismatch
+    base_score_modifier = 0
+    to_w = tx.get("to_wallets", [])
+    amts = tx.get("amounts", [])
+    
+    if not tx.get("to_address") and not to_w:
+        # No destination address specified — highly unusual structure
+        base_score_modifier += 15
+        
+    if isinstance(to_w, list) and isinstance(amts, list):
+        if to_w and len(to_w) != len(amts):
+            import logging
+            logging.warning("Transaction format error: amounts array length doesn't match to_wallets length. Scoring available data.")
+
+    # 3. Missing age & 4. Missing value are naturally handled by our rules
+    # which use .get() defaulting to 0 or None securely.
+    
+    tx["_base_modifier"] = base_score_modifier
 
     # ------------------------------------------------------------------
     # Run all 6 rules
@@ -89,7 +115,7 @@ async def score_transaction(
     ]
 
     triggered_rules: list[str] = []
-    total_score: int = 0
+    total_score: int = tx.get("_base_modifier", 0)
 
     for rule_name, rule_coro in rules:
         triggered, contribution = await rule_coro
