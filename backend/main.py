@@ -10,17 +10,38 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import settings
-from .db.models import HealthResponse
-from .api.transactions import router as transactions_router
-from .api.actions import router as actions_router
-from .api.demo import router as demo_router
-from .blockchain import simulator
+from config import settings
+from db.models import HealthResponse
+from api.transactions import router as transactions_router
+from api.actions import router as actions_router
+from api.demo import router as demo_router
+from blockchain import simulator
 
 
 # ---------------------------------------------------------------------------
 # Lifespan — startup / shutdown hooks
 # ---------------------------------------------------------------------------
+
+async def score_and_broadcast(tx: dict):
+    from risk.scorer import score_transaction
+    from ai.explainer import generate_explanation
+    from blockchain import wallet_store
+
+    wallet_address = tx.get("from_address", "")
+    history = wallet_store.get_wallet_history(wallet_address, limit=10)
+    wallet_history_dict = {wallet_address: history}
+    
+    result = await score_transaction(tx, wallet_history_dict)
+    
+    if result.get("risk_tier") in ("medium", "critical"):
+        explanation = ""
+        async for chunk in generate_explanation(result):
+            explanation += chunk
+        result["ai_explanation"] = explanation
+
+    wallet_store.record_transaction(result)
+    simulator._tx_counter += 1
+    await simulator.broadcast({"type": "new_transaction", "data": result})
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,9 +51,23 @@ async def lifespan(app: FastAPI):
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")
 
-    # Start the mock mempool simulation if in simulation mode
+    import asyncio
+    import logging
+    logging.basicConfig(level=logging.INFO)
     if settings.SIMULATION_MODE:
-        await simulator.start_simulation()
+        import logging
+        logging.info("Starting in SIMULATION MODE")
+        asyncio.create_task(simulator.start_simulation())
+    else:
+        import logging
+        logging.info("Starting in LIVE MODE — connecting to Ethereum mempool")
+        from blockchain.stream import start_blockchain_listener
+        asyncio.create_task(
+            start_blockchain_listener(
+                alchemy_wss_url=settings.ALCHEMY_WSS_URL,
+                score_and_broadcast=score_and_broadcast,
+            )
+        )
 
     yield
 

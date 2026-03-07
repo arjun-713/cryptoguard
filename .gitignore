@@ -1,5 +1,7 @@
 # Environment
 .env
+*.env.local
+.env
 
 # Python
 __pycache__/
@@ -41,7 +43,7 @@ venv/
 env/
 .venv/
 .pytest_cache/
-cryptoguard.db
+*.egg-info/
 
 # Node.js / Frontend
 node_modules/
@@ -49,10 +51,17 @@ dist/
 dist-ssr/
 build/
 .npm/
+frontend/dist/
+
+# Database
+*.db
 
 # IDE / OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
 *.swp
+*.swo
 *.log
+*.so

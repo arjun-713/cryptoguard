@@ -7,8 +7,8 @@ Endpoints for transaction listing, lookup, wallet history, and scoring.
 from datetime import datetime, timezone
 from fastapi import APIRouter
 
-from ..blockchain import wallet_store
-from ..blockchain.bad_actors import is_bad_actor
+from blockchain import wallet_store
+from blockchain.bad_actors import is_bad_actor
 
 router = APIRouter(prefix="/api", tags=["transactions"])
 
@@ -70,7 +70,7 @@ async def score_transaction(body: dict):
     # 1. Try to use M2's real scorer
     try:
         # Import dynamically so we don't crash on boot if M2 hasn't created it yet
-        from backend.risk.scorer import scoreTransaction
+        from risk.scorer import scoreTransaction
         
         # M2's function should return a dict: {"risk_score": X, "risk_tier": "Y"}
         m2_result = scoreTransaction(tx)

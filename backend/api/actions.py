@@ -8,7 +8,7 @@ Actions are logged to console and stored in-memory for the case log.
 from datetime import datetime, timezone
 from fastapi import APIRouter
 
-from ..db.models import ActionType
+from db.models import ActionType
 
 router = APIRouter(prefix="/api", tags=["actions"])
 

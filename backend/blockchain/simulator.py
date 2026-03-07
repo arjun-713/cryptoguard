@@ -15,7 +15,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from . import wallet_store
+import blockchain.wallet_store as wallet_store
 
 # ---------------------------------------------------------------------------
 # Module-level state
