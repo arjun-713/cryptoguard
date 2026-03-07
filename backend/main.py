@@ -79,13 +79,13 @@ async def score_and_broadcast(tx: dict):
     # 2. Threshold checks
     if score >= settings.HOLD_THRESHOLD:
         notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
-        log_action(tx_hash, ActionType.AUTO_HOLD, notes)
+        await log_action(tx_hash, ActionType.AUTO_HOLD, notes, result)
         result["auto_held"] = True
         await increment_stat("auto_held")
         print(f"🔴 AUTO-HOLD triggered for tx {tx_hash} score {score}/100")
     elif score >= settings.MONITOR_THRESHOLD:
         notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
-        log_action(tx_hash, ActionType.AUTO_MONITOR, notes)
+        await log_action(tx_hash, ActionType.AUTO_MONITOR, notes, result)
         result["auto_monitored"] = True
         await increment_stat("auto_monitored")
         print(f"🟡 AUTO-MONITOR triggered for tx {tx_hash} score {score}/100")

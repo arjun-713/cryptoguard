@@ -6,11 +6,15 @@ Actions are logged to console and stored in-memory for the case log.
 """
 
 from datetime import datetime, timezone
+import json
+import aiosqlite
 from fastapi import APIRouter
+from config import settings
 
 from db.models import ActionType
 
 router = APIRouter(prefix="/api", tags=["actions"])
+DB_PATH = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
 
 
 # ---------------------------------------------------------------------------
@@ -21,21 +25,65 @@ _action_log: list[dict] = []
 _action_counter: int = 0
 
 
-def log_action(tx_id: str, action: ActionType, analyst_notes: str = "") -> dict:
+async def log_action(tx_id: str, action: ActionType, analyst_notes: str = "", tx_data: dict = None) -> dict:
     """Create and store an action record, log to console."""
+    if tx_data is None:
+        tx_data = {}
+        
     global _action_counter
     _action_counter += 1
 
     now = datetime.now(timezone.utc)
+    
+    from_address = tx_data.get("from_address", "")
+    to_address = tx_data.get("to_address", "")
+    eth_value = tx_data.get("eth_value", 0.0)
+    risk_score = tx_data.get("risk_score", 0)
+    risk_tier = tx_data.get("risk_tier", "")
+    triggered_rules = tx_data.get("triggered_rules", [])
+    ai_explanation = tx_data.get("ai_explanation", "")
+    tx_timestamp = tx_data.get("timestamp", "")
+    actioned_by = "analyst_01"
+
     record = {
         "id": _action_counter,
         "tx_id": tx_id,
         "action": action.value,
         "analyst_notes": analyst_notes,
         "actioned_at": now.isoformat(),
-        "actioned_by": "analyst_01",
+        "actioned_by": actioned_by,
+        "tx_details": {
+            "id": tx_id,
+            "hash": tx_id,
+            "from": from_address,
+            "to": to_address,
+            "eth_value": eth_value,
+            "risk_score": risk_score,
+            "risk_tier": risk_tier,
+            "triggered_rules": triggered_rules,
+            "ai_explanation": ai_explanation,
+            "timestamp": tx_timestamp
+        }
     }
     _action_log.append(record)
+
+    # Persist to SQLite
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                INSERT INTO case_actions (
+                    tx_id, action, analyst_notes, actioned_at, actioned_by,
+                    from_address, to_address, eth_value, risk_score, risk_tier,
+                    triggered_rules, ai_explanation, tx_timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                tx_id, action.value, analyst_notes, now.isoformat(), actioned_by,
+                from_address, to_address, eth_value, risk_score, risk_tier,
+                json.dumps(triggered_rules), ai_explanation, tx_timestamp
+            ))
+            await db.commit()
+    except Exception as e:
+        print(f"❌ Failed to insert action to db: {e}")
 
     # Console log with timestamp and action type
     emoji = {
@@ -67,7 +115,7 @@ async def hold_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = log_action(tx_id, ActionType.HOLD, notes)
+    record = await log_action(tx_id, ActionType.HOLD, notes, body)
     return {"status": "held", **record}
 
 
@@ -84,7 +132,7 @@ async def monitor_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = log_action(tx_id, ActionType.MONITOR, notes)
+    record = await log_action(tx_id, ActionType.MONITOR, notes, body)
     return {"status": "monitoring", **record}
 
 
@@ -101,7 +149,7 @@ async def escalate_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = log_action(tx_id, ActionType.ESCALATE, notes)
+    record = await log_action(tx_id, ActionType.ESCALATE, notes, body)
     return {"status": "escalated", **record}
 
 
@@ -112,15 +160,10 @@ async def escalate_transaction(body: dict):
 @router.get("/actions")
 async def get_actions():
     """Return all case actions (most recent first) along with full tx details."""
-    from blockchain.wallet_store import get_transaction_by_id
-    
-    enriched_actions = []
-    for action in reversed(_action_log):
-        tx_details = get_transaction_by_id(action["tx_id"])
-        # Merge safely so frontend has transaction context seamlessly
-        enriched_actions.append({**action, "tx_details": tx_details})
-        
-    return enriched_actions
+    # Since log_action now records the full tx_details inline in _action_log
+    # we can just return it from memory, or fallback to the DB if we wanted to read from DB.
+    # We will return the in-memory log which already has the embedded tx_details
+    return list(reversed(_action_log))
 
 
 # ---------------------------------------------------------------------------

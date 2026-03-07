@@ -33,6 +33,28 @@ async def init_db():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_wallet_history_address ON wallet_history (address)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_wallet_history_timestamp ON wallet_history (timestamp)")
         
+        # case_actions table
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS case_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tx_id TEXT,
+                action TEXT,
+                analyst_notes TEXT,
+                actioned_at TEXT,
+                actioned_by TEXT,
+                is_seed INTEGER DEFAULT 0,
+                from_address TEXT,
+                to_address TEXT,
+                eth_value REAL,
+                risk_score INTEGER,
+                risk_tier TEXT,
+                triggered_rules TEXT,
+                ai_explanation TEXT,
+                tx_timestamp TEXT,
+                status TEXT DEFAULT 'ACTIVE'
+            )
+        """)
+        
         await db.commit()
     
     # Initialize and load stats (Fix 5)

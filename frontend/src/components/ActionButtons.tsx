@@ -43,6 +43,14 @@ export default function ActionButtons({ transaction, onAction }: ActionButtonsPr
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tx_id: transaction.hash,
+                    from_address: transaction.from,
+                    to_address: transaction.to,
+                    eth_value: transaction.eth_value,
+                    risk_score: transaction.risk_score,
+                    risk_tier: transaction.risk_tier,
+                    triggered_rules: transaction.triggered_rules,
+                    ai_explanation: transaction.ai_explanation,
+                    timestamp: transaction.receivedAt ? new Date(transaction.receivedAt).toISOString() : new Date().toISOString(),
                     notes: config.type === 'hold' ? "Manual hold by broker" :
                         config.type === 'monitor' ? "Flagged for monitoring" :
                             "Escalated for senior review"
@@ -102,8 +110,8 @@ export default function ActionButtons({ transaction, onAction }: ActionButtonsPr
                                 disabled={isCompleted || isLoading}
                                 onClick={() => handleClick(action)}
                                 className={`w-full justify-center gap-2 tracking-wide font-bold h-10 transition-all ${isCompleted
-                                        ? 'bg-muted opacity-80'
-                                        : action.colorClass
+                                    ? 'bg-muted opacity-80'
+                                    : action.colorClass
                                     } ${isAutoHeld ? 'border-destructive border-2' : ''}`}
                             >
                                 {isLoading ? (

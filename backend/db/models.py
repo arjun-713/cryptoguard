@@ -86,6 +86,14 @@ class CaseActionCreate(BaseModel):
     tx_id: str
     action: ActionType
     analyst_notes: str = ""
+    from_address: str = ""
+    to_address: str = ""
+    eth_value: float = 0.0
+    risk_score: int = 0
+    risk_tier: str = ""
+    triggered_rules: list[str] = []
+    ai_explanation: Optional[str] = None
+    timestamp: str = ""
 
 
 class CaseActionResponse(BaseModel):
@@ -98,6 +106,14 @@ class CaseActionResponse(BaseModel):
     actioned_at: str = ""
     actioned_by: str = "analyst_01"
     is_seed: int = 0
+    from_address: str = ""
+    to_address: str = ""
+    eth_value: float = 0.0
+    risk_score: int = 0
+    risk_tier: str = ""
+    triggered_rules: list[str] = []
+    ai_explanation: Optional[str] = None
+    tx_timestamp: str = ""
 
 
 # ---------------------------------------------------------------------------
