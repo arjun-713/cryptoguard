@@ -1,0 +1,10 @@
+{
+  "name": "cryptoguard",
+  "version": "1.0.0",
+  "description": "Real-time cryptocurrency scam interception platform.",
+  "scripts": {
+    "start": "source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null || true && PYTHONUNBUFFERED=1 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000",
+    "health": "node backend/ingestion/healthCheck.js",
+    "demo": "curl -X POST http://localhost:8000/api/demo/start"
+  }
+}
