@@ -2,43 +2,31 @@
 
 > Real-time cryptocurrency scam interception platform for brokers and exchanges.
 
-CryptoGuard intercepts suspicious blockchain transactions **in the mempool** — before confirmation — scores them in milliseconds, and generates AI-powered compliance explanations so analysts can act instantly.
+## Architecture Overview
+Our pipeline ingests transactions directly from the mempool — the waiting room before blockchain confirmation. Every transaction is enriched with the sending wallet's behavioral history and immediately handed to the Risk Engine for algorithmic scoring. The entire flow from transaction arrival to scored output, including WebSocket broadcast for frontend visualization, takes under 100 milliseconds.
 
 ---
 
-## Quick Start
+## Quick Start (One-Command Startup)
 
-### Prerequisites
-- Python 3.11+
-- Node 20+ (for frontend, setup separately)
-
-### Backend Setup
+Once dependencies are installed via `pip install -r requirements.txt`, you can start the entire backend and simulation engine with a single command:
 
 ```bash
-# 1. Clone and enter the project
-cd cryptoguard
-
-# 2. Create virtual environment
-python3 -m venv venv
-source venv/bin/activate   # Linux/Mac
-# venv\Scripts\activate    # Windows
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-cp .env.example .env
-# Edit .env with your API keys (Alchemy, Anthropic)
-
-# 5. Run the server
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+npm start
 ```
+*(Runs the FastAPI server locally on port 8000).*
 
-### Verify
-
+### Demo Sequence Trigger
+To fire the pre-scripted 4-transaction pitch sequence (Normal → Peel Chain → Mixer → Velocity Anomaly) precisely 5 seconds apart, run:
 ```bash
-curl http://localhost:8000/health
-# → {"status": "ok", "simulation_mode": true, "transactions_processed": 0}
+npm run demo
+```
+*(Or send a POST request to `http://localhost:8000/api/demo/start`)*
+
+### Health Check script
+Verify all services are running and check simulation mode:
+```bash
+npm run health
 ```
 
 ---
@@ -50,10 +38,15 @@ curl http://localhost:8000/health
 | `GET` | `/health` | System status check |
 | `WS` | `/ws` | Live transaction stream |
 | `GET` | `/api/transactions` | Last 50 transactions |
+| `GET` | `/api/transactions/recent`| Last 20 transactions |
 | `GET` | `/api/transactions/{tx_id}` | Single transaction detail |
-| `GET` | `/api/explain/{tx_id}` | SSE-streamed AI explanation |
-| `POST` | `/api/actions` | Create hold/monitor/escalate action |
-| `GET` | `/api/actions` | All case actions |
+| `POST`| `/api/transactions/score` | Score a single transaction manually |
+| `GET` | `/api/wallet/{address}/history`| Get last 10 transactions for a wallet |
+| `POST`| `/api/actions/hold` | Log a HOLD action by a broker |
+| `POST`| `/api/actions/monitor` | Log a MONITOR action by a broker |
+| `POST`| `/api/actions/escalate` | Log an ESCALATE action by a broker |
+| `GET` | `/api/actions` | All pending case actions |
+| `POST`| `/api/demo/start` | Fire the 4-step pitch demo sequence |
 
 ---
 
@@ -62,17 +55,18 @@ curl http://localhost:8000/health
 ```
 cryptoguard/
 ├── backend/
-│   ├── ai/              # Claude AI explainer
 │   ├── api/             # FastAPI route handlers
 │   │   ├── transactions.py
+│   │   ├── demo.py      # Pitch sequencer
 │   │   └── actions.py
-│   ├── blockchain/      # Mempool stream & simulation
-│   ├── db/              # Database & Pydantic models
-│   │   └── models.py
-│   ├── risk/            # Risk scoring engine (6 rules)
+│   ├── blockchain/      # Mempool stream & simulation (simulator.py)
+│   ├── db/              # Database & Pydantic models (models.py)
+│   ├── ingestion/       # Health checks and raw ingestion scripts
+│   ├── risk/            # Risk scoring engine (M2)
 │   ├── config.py        # Central config from .env
 │   └── main.py          # FastAPI entry point
 ├── docs/                # Project docs & simulation data
+├── package.json         # NPM scripts for one-command execution
 ├── .env.example         # Environment template
 ├── requirements.txt     # Python dependencies
 └── README.md
@@ -84,10 +78,11 @@ cryptoguard/
 
 | Variable | Description |
 |----------|-------------|
+| `PORT` | API Port (default 8000) |
 | `ALCHEMY_WSS_URL` | Alchemy WebSocket URL for Ethereum mempool |
 | `ANTHROPIC_API_KEY` | Anthropic Claude API key |
 | `DATABASE_URL` | SQLite connection string |
-| `CORS_ORIGINS` | Allowed frontend origins (comma-separated) |
+| `CORS_ORIGINS` | Allowed frontend origins (comma-separated, `*`) |
 | `SIMULATION_MODE` | `true` for demo, `false` for live mempool |
 | `SIMULATION_DATA_PATH` | Path to simulation data JSON |
 
