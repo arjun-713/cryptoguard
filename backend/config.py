@@ -30,7 +30,7 @@ class Settings:
     
     # Feature Toggles (Fix 3 & 5)
     BROKER_WEBHOOK_URL: str = os.getenv("BROKER_WEBHOOK_URL", "")
-    HOLD_THRESHOLD: int = int(os.getenv("HOLD_THRESHOLD", "70"))
+    HOLD_THRESHOLD: int = int(os.getenv("HOLD_THRESHOLD", "80"))
     MONITOR_THRESHOLD: int = int(os.getenv("MONITOR_THRESHOLD", "40"))
 
 

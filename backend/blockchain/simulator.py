@@ -154,10 +154,6 @@ async def fire_demo_sequence() -> None:
                 notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
                 await log_action(tx_id, ActionType.AUTO_HOLD, notes, enriched)
                 enriched["auto_held"] = True
-            elif score >= settings.MONITOR_THRESHOLD:
-                notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
-                await log_action(tx_id, ActionType.AUTO_MONITOR, notes, enriched)
-                enriched["auto_monitored"] = True
 
             await broadcast({
                 "type": "new_transaction",
@@ -232,10 +228,6 @@ async def run_simulation_loop() -> None:
                     notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
                     await log_action(tx_id, ActionType.AUTO_HOLD, notes, enriched)
                     enriched["auto_held"] = True
-                elif score >= settings.MONITOR_THRESHOLD:
-                    notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
-                    await log_action(tx_id, ActionType.AUTO_MONITOR, notes, enriched)
-                    enriched["auto_monitored"] = True
 
                 await broadcast({
                     "type": "new_transaction",
