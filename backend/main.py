@@ -23,17 +23,61 @@ from blockchain import simulator
 # ---------------------------------------------------------------------------
 
 async def score_and_broadcast(tx: dict):
-    from risk.scorer import score_transaction
+    from risk.scorer import score_transaction, _determine_tier
     from ai.explainer import generate_explanation
     from blockchain import wallet_store
+    from db.suspicious_addresses import record_suspicious_address, is_known_suspicious
+    from api.actions import log_action
+    from db.models import ActionType
 
-    wallet_address = tx.get("from_address", "")
-    history = wallet_store.get_wallet_history(wallet_address, limit=10)
-    wallet_history_dict = {wallet_address: history}
+    from_addr = tx.get("from_address", "")
+    to_addr = tx.get("to_address", "")
+    
+    # Check for REPEAT_OFFENDER penalty (Feature 2)
+    repeat_offender = False
+    for addr in [from_addr, to_addr]:
+        if addr and await is_known_suspicious(addr):
+            repeat_offender = True
+            break
+            
+    history = wallet_store.get_wallet_history(from_addr, limit=10)
+    wallet_history_dict = {from_addr: history}
     
     result = await score_transaction(tx, wallet_history_dict)
     
-    if result.get("risk_tier") in ("medium", "critical"):
+    # Apply penalty if address is known suspicious
+    if repeat_offender:
+        result["risk_score"] = min(100, result["risk_score"] + 10)
+        if "REPEAT_OFFENDER" not in result["triggered_rules"]:
+            result["triggered_rules"].append("REPEAT_OFFENDER")
+        # Re-map tier based on updated score
+        result["risk_tier"] = _determine_tier(result["risk_score"])
+
+    score = result.get("risk_score", 0)
+    tier = result.get("risk_tier", "low")
+    tx_hash = result.get("id") or result.get("hash") or result.get("tx_id", "unknown")
+
+    # Record suspicious address if above threshold (Feature 2)
+    if score >= 40:
+        await record_suspicious_address(from_addr, score, result["triggered_rules"])
+
+    # FEATURE 1 — AUTO-HOLD / MONITOR
+    result["auto_held"] = False
+    result["auto_monitored"] = False
+
+    if tier == "critical" or score >= 70:
+        notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
+        log_action(tx_hash, ActionType.HOLD, notes)
+        result["auto_held"] = True
+        print(f"🔴 AUTO-HOLD triggered for tx {tx_hash} score {score}/100")
+    elif tier == "medium":
+        notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
+        log_action(tx_hash, ActionType.MONITOR, notes)
+        result["auto_monitored"] = True
+        print(f"🟡 AUTO-MONITOR triggered for tx {tx_hash} score {score}/100")
+
+    # AI Explanation
+    if tier in ("medium", "critical"):
         explanation = ""
         async for chunk in generate_explanation(result):
             explanation += chunk
@@ -47,6 +91,11 @@ async def score_and_broadcast(tx: dict):
 async def lifespan(app: FastAPI):
     """Runs on startup and shutdown."""
     print("🚀 CryptoGuard backend starting...")
+    
+    # Initialize database tables
+    from db.suspicious_addresses import init_db
+    await init_db()
+    
     print(f"   Simulation mode: {settings.SIMULATION_MODE}")
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")

@@ -21,7 +21,7 @@ _action_log: list[dict] = []
 _action_counter: int = 0
 
 
-def _log_action(tx_id: str, action: ActionType, analyst_notes: str = "") -> dict:
+def log_action(tx_id: str, action: ActionType, analyst_notes: str = "") -> dict:
     """Create and store an action record, log to console."""
     global _action_counter
     _action_counter += 1
@@ -61,7 +61,7 @@ async def hold_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = _log_action(tx_id, ActionType.HOLD, notes)
+    record = log_action(tx_id, ActionType.HOLD, notes)
     return {"status": "held", **record}
 
 
@@ -78,7 +78,7 @@ async def monitor_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = _log_action(tx_id, ActionType.MONITOR, notes)
+    record = log_action(tx_id, ActionType.MONITOR, notes)
     return {"status": "monitoring", **record}
 
 
@@ -95,7 +95,7 @@ async def escalate_transaction(body: dict):
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = _log_action(tx_id, ActionType.ESCALATE, notes)
+    record = log_action(tx_id, ActionType.ESCALATE, notes)
     return {"status": "escalated", **record}
 
 

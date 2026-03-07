@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from blockchain import wallet_store
 from blockchain.bad_actors import is_bad_actor
+from db.suspicious_addresses import get_suspicious_addresses
 
 router = APIRouter(prefix="/api", tags=["transactions"])
 
@@ -133,3 +134,13 @@ async def score_transaction(body: dict):
 async def get_wallet_history(address: str):
     """Return the last 10 transactions involving this wallet."""
     return wallet_store.get_wallet_history(address, limit=10)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/suspicious-addresses — suspicious address list
+# ---------------------------------------------------------------------------
+
+@router.get("/suspicious-addresses")
+async def get_suspicious_list():
+    """Return the full list of blacklisted or recurring suspicious addresses."""
+    return await get_suspicious_addresses()
