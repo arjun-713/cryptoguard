@@ -69,17 +69,24 @@ async def score_transaction(body: dict):
 
     # 1. Try to use M2's real scorer
     try:
-        # Import dynamically so we don't crash on boot if M2 hasn't created it yet
-        from risk.scorer import scoreTransaction
+        from risk.scorer import score_transaction as m2_score_transaction
         
-        # M2's function should return a dict: {"risk_score": X, "risk_tier": "Y"}
-        m2_result = scoreTransaction(tx)
+        # Prepare the correctly formatted wallet history dict
+        wallet_history_dict = {from_address: wallet_history}
         
+        # Call the real scorer (async)
+        res = await m2_score_transaction(tx, wallet_history_dict)
+        
+        # Update our record with real rules if it triggered any
+        tx["risk_score"] = res.get("risk_score", 0)
+        tx["risk_tier"] = res.get("risk_tier", "low")
+        tx["triggered_rules"] = res.get("triggered_rules", [])
+
         return {
             "tx_id": tx_id,
-            "risk_score": m2_result.get("risk_score", 0),
-            "risk_tier": m2_result.get("risk_tier", "low"),
-            "triggered_rules": tx.get("triggered_rules", []),
+            "risk_score": res.get("risk_score", 0),
+            "risk_tier": res.get("risk_tier", "low"),
+            "triggered_rules": res.get("triggered_rules", []),
             "from_address": from_address,
             "wallet_history_count": len(wallet_history),
             "is_known_bad_actor": is_bad_actor(from_address),

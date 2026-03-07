@@ -10,6 +10,8 @@ Weights are LOCKED — imported from constants.py.
 
 from __future__ import annotations
 
+import math
+from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
@@ -49,6 +51,18 @@ def _parse_ts(raw: Any) -> datetime | None:
         return None
 
 
+def _get_history(tx: dict, wallet_history: dict, addr: str) -> list:
+    """Get history for an address, merging wallet_history dict and inline tx data."""
+    history = wallet_history.get(addr, [])
+    # If this is the sender, also consider any history attached to the transaction itself
+    if addr == _addr(tx, "from"):
+        inline = tx.get("from_wallet_recent_txs", [])
+        if inline:
+            # Simple concat is enough for rule logic as they handle duplicates/IDs
+            return list(history) + list(inline)
+    return history
+
+
 # ── Rule 1: BLACKLIST_HIT  (+40) ────────────────────────────────────────
 
 
@@ -81,32 +95,48 @@ async def check_tornado_proximity(
 ) -> tuple[bool, int]:
     """Funds routed through or directly from a known mixer address.
 
-    Checks three layers:
-    1. Direct: from/to IS a Tornado Cash address
-    2. Hop chain: any address in hop_chain is Tornado Cash
-    3. History: wallet recently interacted with Tornado Cash
+    Implementation: Breadth-First Search (BFS) up to 3 hops deep using
+    wallet_history as the adjacency list.
     """
     from_a = _addr(tx, "from")
     to_a = _addr(tx, "to")
+    hop_chain = [a.lower() for a in (tx.get("hop_chain") or [])]
 
-    # Layer 1 — direct contact
-    if from_a in TORNADO_CASH_ADDRESSES or to_a in TORNADO_CASH_ADDRESSES:
-        return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
+    # BFS Initialization
+    queue = deque()
+    visited = set()
 
-    # Layer 2 — hop chain contains mixer
-    for addr in (tx.get("hop_chain") or []):
-        if addr.lower() in TORNADO_CASH_ADDRESSES:
+    # Starting nodes (depth 0)
+    start_nodes = {from_a, to_a} | set(hop_chain)
+    for node in start_nodes:
+        if not node:
+            continue
+        if node in TORNADO_CASH_ADDRESSES:
             return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
+        queue.append((node, 0))
+        visited.add(node)
 
-    # Layer 3 — wallet history touched a mixer
-    for past_tx in wallet_history.get(from_a, []):
-        if _addr(past_tx, "from") in TORNADO_CASH_ADDRESSES:
-            return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
-        if _addr(past_tx, "to") in TORNADO_CASH_ADDRESSES:
-            return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
-        for h in (past_tx.get("hop_chain") or []):
-            if h.lower() in TORNADO_CASH_ADDRESSES:
-                return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
+    while queue:
+        current_node, depth = queue.popleft()
+        if depth >= 3:
+            continue
+
+        # Explore neighbors from provided history
+        # wallet_history keys are addresses, values are lists of transactions
+        for past_tx in _get_history(tx, wallet_history, current_node):
+            # Potential neighbors: from, to, and any hops in past transaction
+            potential_neighbors = {
+                _addr(past_tx, "from"),
+                _addr(past_tx, "to")
+            } | {a.lower() for a in (past_tx.get("hop_chain") or [])}
+
+            for neighbor in potential_neighbors:
+                if not neighbor or neighbor in visited:
+                    continue
+                if neighbor in TORNADO_CASH_ADDRESSES:
+                    return True, RULE_WEIGHTS["TORNADO_PROXIMITY"]
+                queue.append((neighbor, depth + 1))
+                visited.add(neighbor)
 
     return False, 0
 
@@ -135,7 +165,7 @@ async def check_peel_chain(
     from_a = _addr(tx, "from")
     eth_out = tx.get("eth_value", 0.0)
     tx_time = _parse_ts(tx.get("timestamp"))
-    history = wallet_history.get(from_a, [])
+    history = _get_history(tx, wallet_history, from_a)
 
     if not history:
         return False, 0
@@ -180,24 +210,52 @@ async def check_high_velocity(
     tx: dict[str, Any],
     wallet_history: dict[str, Any],
 ) -> tuple[bool, int]:
-    """>5 transactions in 60 seconds from the same wallet."""
+    """Detect unusual transaction frequency using statistical Z-score deviation."""
     from_a = _addr(tx, "from")
-    history = wallet_history.get(from_a, [])
+    history = _get_history(tx, wallet_history, from_a)
     tx_time = _parse_ts(tx.get("timestamp"))
 
-    if tx_time:
-        # Count txs within the velocity window
-        count = 1  # current tx
-        for past in history:
-            pt = _parse_ts(past.get("timestamp"))
-            if pt and abs((tx_time - pt).total_seconds()) <= VELOCITY_WINDOW_SECONDS:
-                count += 1  # type: ignore
-        if count > VELOCITY_THRESHOLD:
-            return True, RULE_WEIGHTS["HIGH_VELOCITY"]
-    else:
-        # No timestamp — fall back to raw history count
-        if len(history) >= VELOCITY_THRESHOLD:
-            return True, RULE_WEIGHTS["HIGH_VELOCITY"]
+    if not tx_time:
+        tx_time = datetime.now(timezone.utc)
+
+    # Need at least 5 historical transactions with timestamps to calculate Z-score
+    timestamps = sorted([
+        _parse_ts(p.get("timestamp"))
+        for p in history[-20:]
+        if _parse_ts(p.get("timestamp"))
+    ])
+
+    # 1. Baseline Safety: Always check static volume threshold first
+    count = 1
+    for past in history:
+        pt = _parse_ts(past.get("timestamp"))
+        if pt and abs((tx_time - pt).total_seconds()) <= VELOCITY_WINDOW_SECONDS:
+            count += 1
+    if count > VELOCITY_THRESHOLD:
+        return True, RULE_WEIGHTS["HIGH_VELOCITY"]
+
+    # 2. Statistical Z-score deviation check (detecting spikes)
+    # If we have enough history, check if this specific tx is anomalously fast
+    if len(timestamps) >= 5:
+        # Calculate inter-arrival time gaps (seconds)
+        gaps = []
+        for i in range(1, len(timestamps)):
+            gap = (timestamps[i] - timestamps[i - 1]).total_seconds()
+            gaps.append(max(gap, 0.001))
+
+        # Current gap (between previous and now)
+        current_gap = (tx_time - timestamps[-1]).total_seconds()
+        current_gap = max(current_gap, 0.001)
+
+        mean_gap = sum(gaps) / len(gaps)
+        variance = sum((g - mean_gap) ** 2 for g in gaps) / len(gaps)
+        std_dev = math.sqrt(variance)
+
+        if std_dev >= 0.001:
+            # Look for "Faster than normal" (Small current_gap -> high positive Z)
+            z_score = (mean_gap - current_gap) / std_dev
+            if z_score > 2.0:
+                return True, RULE_WEIGHTS["HIGH_VELOCITY"]
 
     return False, 0
 
