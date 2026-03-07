@@ -55,8 +55,8 @@ def _log_action(tx_id: str, action: ActionType, analyst_notes: str = "") -> dict
 @router.post("/actions/hold")
 async def hold_transaction(body: dict):
     """Place a hold on a flagged transaction."""
-    tx_id = body.get("tx_id", "")
-    notes = body.get("analyst_notes", "")
+    tx_id = body.get("tx_id") or body.get("tx_hash", "")
+    notes = body.get("analyst_notes") or body.get("notes", "")
 
     if not tx_id:
         return {"detail": "tx_id is required"}
@@ -72,8 +72,8 @@ async def hold_transaction(body: dict):
 @router.post("/actions/monitor")
 async def monitor_transaction(body: dict):
     """Flag a transaction for ongoing monitoring."""
-    tx_id = body.get("tx_id", "")
-    notes = body.get("analyst_notes", "")
+    tx_id = body.get("tx_id") or body.get("tx_hash", "")
+    notes = body.get("analyst_notes") or body.get("notes", "")
 
     if not tx_id:
         return {"detail": "tx_id is required"}
@@ -89,8 +89,8 @@ async def monitor_transaction(body: dict):
 @router.post("/actions/escalate")
 async def escalate_transaction(body: dict):
     """Escalate a transaction for compliance review."""
-    tx_id = body.get("tx_id", "")
-    notes = body.get("analyst_notes", "")
+    tx_id = body.get("tx_id") or body.get("tx_hash", "")
+    notes = body.get("analyst_notes") or body.get("notes", "")
 
     if not tx_id:
         return {"detail": "tx_id is required"}
