@@ -71,14 +71,26 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect }
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
-                                            <Badge
-                                                variant={tier === 'critical' ? 'destructive' : tier === 'medium' ? 'secondary' : 'outline'}
-                                                className="font-mono text-[11px] px-2 h-5"
-                                                style={tier === 'low' ? { color, borderColor: `${color}40` } : undefined}
-                                            >
-                                                {tx.risk_score}
-                                            </Badge>
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0 ml-1">
+                                            <div className="flex items-center gap-1.5">
+                                                {tx.auto_held && (
+                                                    <Badge variant="destructive" className="text-[9px] h-4 px-1 px-1.5 uppercase font-bold animate-pulse">
+                                                        AUTO-HELD
+                                                    </Badge>
+                                                )}
+                                                {tx.auto_monitored && (
+                                                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] h-4 px-1.5 uppercase font-bold">
+                                                        AUTO-MONITORED
+                                                    </Badge>
+                                                )}
+                                                <Badge
+                                                    variant={tier === 'critical' ? 'destructive' : tier === 'medium' ? 'secondary' : 'outline'}
+                                                    className="font-mono text-[11px] px-2 h-5"
+                                                    style={tier === 'low' ? { color, borderColor: `${color}40` } : undefined}
+                                                >
+                                                    {tx.risk_score}
+                                                </Badge>
+                                            </div>
                                             <span className="text-[11px] text-muted-foreground">
                                                 {tx.receivedAt ? timeAgo(tx.receivedAt) : `+${tx.timestamp_offset_seconds}s`}
                                             </span>

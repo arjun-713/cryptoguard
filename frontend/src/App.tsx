@@ -6,15 +6,20 @@ import RiskCard from '@/components/RiskCard';
 import ExplanationPanel from '@/components/ExplanationPanel';
 import ActionButtons from '@/components/ActionButtons';
 import AlertSidebar from '@/components/AlertSidebar';
+import SuspiciousAddresses from '@/components/SuspiciousAddresses';
+import CaseLog from '@/components/CaseLog';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Shield, Activity, Zap, Radio } from 'lucide-react';
+import { Shield, Activity, Zap, Radio, LayoutDashboard, ClipboardList, ShieldAlert } from 'lucide-react';
+
+type active_view = 'dashboard' | 'case_log' | 'suspicious';
 
 function App() {
   const { transactions, isConnected, isDemoMode, setDemoMode, resetFeed, error } = useTransactionStream();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [activeView, setActiveView] = useState<active_view>('dashboard');
   const [, setActionLog] = useState<Map<string, ActionType>>(new Map());
 
   useEffect(() => {
@@ -26,13 +31,18 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input (though we don't have any yet)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key === 'd' || e.key === 'D') {
         setDemoMode(prev => !prev);
       } else if (e.key === 'r' || e.key === 'R') {
         resetFeed();
+      } else if (e.key === '1') {
+        setActiveView('dashboard');
+      } else if (e.key === '2') {
+        setActiveView('case_log');
+      } else if (e.key === '3') {
+        setActiveView('suspicious');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -54,20 +64,51 @@ function App() {
       {/* ═══════════════ HEADER ═══════════════ */}
       <header className="shrink-0 border-b bg-card/50 backdrop-blur-sm px-6 py-3 z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-primary" />
-            <div>
-              <h1 className="text-base font-semibold tracking-tight text-foreground">
-                CryptoGuard
-              </h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] -mt-0.5">
-                Real-Time Scam Interception
-              </p>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Shield className="w-6 h-6 text-primary" />
+              <div>
+                <h1 className="text-base font-semibold tracking-tight text-foreground">
+                  CryptoGuard
+                </h1>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] -mt-0.5">
+                  Real-Time Interception
+                </p>
+              </div>
             </div>
+
+            <Separator orientation="vertical" className="h-8" />
+
+            <nav className="flex items-center gap-1">
+              <Button
+                variant={activeView === 'dashboard' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 gap-2 text-xs font-medium"
+                onClick={() => setActiveView('dashboard')}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+              </Button>
+              <Button
+                variant={activeView === 'case_log' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 gap-2 text-xs font-medium"
+                onClick={() => setActiveView('case_log')}
+              >
+                <ClipboardList className="w-3.5 h-3.5" /> Case Log
+              </Button>
+              <Button
+                variant={activeView === 'suspicious' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 gap-2 text-xs font-medium"
+                onClick={() => setActiveView('suspicious')}
+              >
+                <ShieldAlert className="w-3.5 h-3.5" /> Bad Actors
+              </Button>
+            </nav>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
+            <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
               <Activity className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Analyzed:</span>
               <span className="text-xs font-mono font-semibold text-foreground">
@@ -87,7 +128,7 @@ function App() {
 
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
               <Radio className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs text-muted-foreground">Risk Engine:</span>
+              <span className="text-xs text-muted-foreground">Engine:</span>
               <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-primary border-primary/30">
                 ACTIVE
               </Badge>
@@ -110,61 +151,76 @@ function App() {
                 {isConnected ? 'LIVE' : (isDemoMode ? 'DEMO' : 'OFFLINE')}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground -ml-1">ETH Mainnet</span>
           </div>
         </div>
       </header>
 
       {/* ═══════════════ MAIN CONTENT ═══════════════ */}
-      <main className="flex-1 min-h-0 flex p-3 gap-3">
-        {/* Left column — Transaction Feed */}
-        <Card className="flex-[3] min-w-0 min-h-0 flex flex-col">
-          <TransactionFeed
-            transactions={transactions}
-            selectedTxId={selectedTx?.id ?? null}
-            onSelect={handleSelect}
-          />
-        </Card>
+      <main className="flex-1 min-h-0 flex overflow-hidden">
+        {activeView === 'dashboard' && (
+          <div className="flex flex-1 p-3 gap-3 overflow-hidden">
+            {/* Left column — Transaction Feed */}
+            <Card className="flex-[3] min-w-0 min-h-0 flex flex-col border-primary/10">
+              <TransactionFeed
+                transactions={transactions}
+                selectedTxId={selectedTx?.id ?? null}
+                onSelect={handleSelect}
+              />
+            </Card>
 
-        {/* Center column — Risk + Explanation */}
-        <div className="flex-[2] min-w-0 min-h-0 flex flex-col gap-3">
-          <Card className="flex-1 min-h-0 flex flex-col">
-            <RiskCard transaction={selectedTx} />
-          </Card>
-          <Card className="flex-1 min-h-0 flex flex-col">
-            <ExplanationPanel transaction={selectedTx} />
-          </Card>
-        </div>
+            {/* Center column — Risk + Explanation */}
+            <div className="flex-[2] min-w-0 min-h-0 flex flex-col gap-3">
+              <Card className="flex-1 min-h-0 flex flex-col border-primary/10">
+                <RiskCard transaction={selectedTx} />
+              </Card>
+              <Card className="flex-1 min-h-0 flex flex-col border-primary/10">
+                <ExplanationPanel transaction={selectedTx} />
+              </Card>
+            </div>
 
-        {/* Right column — Actions + Alerts */}
-        <div className="w-[280px] shrink-0 min-h-0 flex flex-col gap-3">
-          <Card className="h-[200px] shrink-0 flex flex-col">
-            <ActionButtons
-              selectedTxId={selectedTx?.id ?? null}
-              onAction={handleAction}
-            />
-          </Card>
-          <Card className="flex-1 min-h-0 flex flex-col">
-            <AlertSidebar
-              transactions={transactions}
-              selectedTxId={selectedTx?.id ?? null}
-              onSelect={handleSelect}
-            />
-          </Card>
-        </div>
+            {/* Right column — Actions + Alerts */}
+            <div className="w-[280px] shrink-0 min-h-0 flex flex-col gap-3">
+              <Card className="h-[200px] shrink-0 flex flex-col border-primary/10">
+                <ActionButtons
+                  selectedTxId={selectedTx?.id ?? null}
+                  onAction={handleAction}
+                />
+              </Card>
+              <Card className="flex-1 min-h-0 flex flex-col border-primary/10">
+                <AlertSidebar
+                  transactions={transactions}
+                  selectedTxId={selectedTx?.id ?? null}
+                  onSelect={handleSelect}
+                />
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeView === 'case_log' && (
+          <div className="flex-1 p-3 overflow-hidden">
+            <CaseLog />
+          </div>
+        )}
+
+        {activeView === 'suspicious' && (
+          <div className="flex-1 p-3 overflow-hidden">
+            <SuspiciousAddresses />
+          </div>
+        )}
       </main>
 
       {/* ═══════════════ STATUS BAR ═══════════════ */}
       <footer className="shrink-0 flex items-center justify-between px-6 py-1.5 border-t bg-card/30">
         <span className="text-[10px] font-mono text-muted-foreground">
-          PIPELINE: ALCHEMY WSS → RISK ENGINE → DASHBOARD
+          PIPELINE: ALCHEMY WSS → RISK ENGINE → {activeView.toUpperCase()}
         </span>
         <div className="flex items-center gap-4">
           <span className="text-[10px] font-mono text-muted-foreground">
-            SCORING LATENCY: &lt;10ms
+            {isConnected ? 'NODE: MAINNET-P2P' : 'NODE: SIMULATOR-DB'}
           </span>
-          <span className="text-[10px] font-mono text-muted-foreground">
-            v1.0.0-hackathon
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+            CryptoGuard Security v1.0.1
           </span>
         </div>
       </footer>
@@ -173,3 +229,4 @@ function App() {
 }
 
 export default App;
+

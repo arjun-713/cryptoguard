@@ -65,6 +65,16 @@ export default function RiskCard({ transaction }: RiskCardProps) {
                         >
                             {label}
                         </Badge>
+                        {transaction.auto_held && (
+                            <Badge variant="destructive" className="text-[10px] h-5 px-2 uppercase font-bold animate-pulse">
+                                AUTO-HELD BY ENGINE
+                            </Badge>
+                        )}
+                        {transaction.auto_monitored && (
+                            <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] h-5 px-2 uppercase font-bold">
+                                AUTO-MONITORED BY ENGINE
+                            </Badge>
+                        )}
                     </div>
                     <span className="text-xs text-muted-foreground">{tier.toUpperCase()} RISK</span>
                 </div>

@@ -23,11 +23,24 @@ export interface Transaction {
     receivedAt?: number;
     status?: 'scoring' | 'scored' | 'error';
     action?: string;
+    auto_held?: boolean;
+    auto_monitored?: boolean;
+}
+
+export interface SuspiciousAddress {
+    address: string;
+    first_seen: string;
+    last_seen: string;
+    times_flagged: number;
+    highest_score: number;
+    triggered_rules: string; // JSON string from backend
+    notes: string;
 }
 
 export interface CaseLogEntry {
+    id: number;
     tx_id: string;
-    action: 'hold' | 'monitor' | 'escalate';
+    action: ActionType | 'AUTO_HOLD' | 'AUTO_MONITOR';
     analyst_notes: string;
     actioned_at: string;
     actioned_by: string;

@@ -38,7 +38,13 @@ def log_action(tx_id: str, action: ActionType, analyst_notes: str = "") -> dict:
     _action_log.append(record)
 
     # Console log with timestamp and action type
-    emoji = {"hold": "🛑", "monitor": "👁️", "escalate": "🚨"}.get(action.value, "📋")
+    emoji = {
+        "hold": "🛑", 
+        "monitor": "👁️", 
+        "escalate": "🚨",
+        "AUTO_HOLD": "🤖🛑",
+        "AUTO_MONITOR": "🤖👁️"
+    }.get(action.value, "📋")
     print(
         f"{emoji} ACTION [{now.strftime('%H:%M:%S')}] "
         f"{action.value.upper()} on tx={tx_id} "

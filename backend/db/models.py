@@ -22,6 +22,8 @@ class ActionType(str, Enum):
     HOLD = "hold"
     MONITOR = "monitor"
     ESCALATE = "escalate"
+    AUTO_HOLD = "AUTO_HOLD"
+    AUTO_MONITOR = "AUTO_MONITOR"
 
 
 class RuleKey(str, Enum):

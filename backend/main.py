@@ -67,12 +67,12 @@ async def score_and_broadcast(tx: dict):
 
     if tier == "critical" or score >= 70:
         notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
-        log_action(tx_hash, ActionType.HOLD, notes)
+        log_action(tx_hash, ActionType.AUTO_HOLD, notes)
         result["auto_held"] = True
         print(f"🔴 AUTO-HOLD triggered for tx {tx_hash} score {score}/100")
     elif tier == "medium":
         notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(result['triggered_rules'])}"
-        log_action(tx_hash, ActionType.MONITOR, notes)
+        log_action(tx_hash, ActionType.AUTO_MONITOR, notes)
         result["auto_monitored"] = True
         print(f"🟡 AUTO-MONITOR triggered for tx {tx_hash} score {score}/100")
 
