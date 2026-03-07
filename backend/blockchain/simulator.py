@@ -141,6 +141,24 @@ async def fire_demo_sequence() -> None:
             wallet_store.record_transaction(enriched)
             _tx_counter += 1
 
+            # FEATURE 1: AUTO-HOLD / MONITOR FOR SIMULATION
+            from risk.scorer import _determine_tier
+            from config import settings
+            from api.actions import log_action
+            from db.models import ActionType
+            
+            score = enriched.get("risk_score", 0)
+            tx_id = enriched.get("id", "")
+            
+            if score >= settings.HOLD_THRESHOLD:
+                notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
+                await log_action(tx_id, ActionType.AUTO_HOLD, notes, enriched)
+                enriched["auto_held"] = True
+            elif score >= settings.MONITOR_THRESHOLD:
+                notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
+                await log_action(tx_id, ActionType.AUTO_MONITOR, notes, enriched)
+                enriched["auto_monitored"] = True
+
             await broadcast({
                 "type": "new_transaction",
                 "data": enriched,
@@ -201,6 +219,23 @@ async def run_simulation_loop() -> None:
                 enriched = _enrich_transaction(raw_tx)
                 await wallet_store.record_transaction(enriched)
                 _tx_counter += 1
+
+                from risk.scorer import _determine_tier
+                from config import settings
+                from api.actions import log_action
+                from db.models import ActionType
+                
+                score = enriched.get("risk_score", 0)
+                tx_id = enriched.get("id", "")
+                
+                if score >= settings.HOLD_THRESHOLD:
+                    notes = f"Automatically held by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
+                    await log_action(tx_id, ActionType.AUTO_HOLD, notes, enriched)
+                    enriched["auto_held"] = True
+                elif score >= settings.MONITOR_THRESHOLD:
+                    notes = f"Automatically monitored by CryptoGuard risk engine. Score: {score}/100. Rules: {', '.join(enriched.get('triggered_rules', []))}"
+                    await log_action(tx_id, ActionType.AUTO_MONITOR, notes, enriched)
+                    enriched["auto_monitored"] = True
 
                 await broadcast({
                     "type": "new_transaction",
