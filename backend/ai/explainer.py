@@ -138,10 +138,6 @@ async def generate_explanation(
         response = model.generate_content(
             prompt,
             stream=True,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=200,
-                temperature=0.3,
-            ),
         )
 
         has_content = False
