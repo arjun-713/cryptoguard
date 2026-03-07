@@ -1,0 +1,13 @@
+{
+  "venvPath": "/home/vanisha/Documents/Coding/cryptoguard",
+  "venv": "venv",
+  "pythonVersion": "3.12",
+  "executionEnvironments": [
+    {
+      "root": "/home/vanisha/Documents/Coding/cryptoguard",
+      "extraPaths": [
+        "/home/vanisha/Documents/Coding/cryptoguard"
+      ]
+    }
+  ]
+}
