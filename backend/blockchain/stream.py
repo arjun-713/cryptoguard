@@ -136,6 +136,17 @@ async def start_blockchain_listener(
                         filtered_count += 1
                         continue
 
+                    # Feature 1: Broker Registry check
+                    from db.broker_registry import get_registered_wallets
+                    registered_wallets = await get_registered_wallets()
+                    if registered_wallets:
+                        registered_addresses = {w["wallet_address"] for w in registered_wallets}
+                        from_addr = normalized.get("from_address", "")
+                        to_addr = normalized.get("to_address", "")
+                        if from_addr not in registered_addresses and to_addr not in registered_addresses:
+                            filtered_count += 1
+                            continue
+
                     # Secondary interest filter
                     if not is_interesting(normalized):
                         filtered_count += 1

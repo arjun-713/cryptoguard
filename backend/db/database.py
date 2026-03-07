@@ -55,7 +55,23 @@ async def init_db():
             )
         """)
         
+        # missed_scams table (Feature 4)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS missed_scams (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tx_id TEXT,
+                risk_score INTEGER,
+                triggered_rules TEXT,
+                authorized_at TEXT,
+                authorized_by TEXT
+            )
+        """)
+        
         await db.commit()
+    
+    # Initialize Broker Registry (Feature 1)
+    from db.broker_registry import init_broker_registry_db
+    await init_broker_registry_db()
     
     # Initialize and load stats (Fix 5)
     from db.stats import init_stats_db, load_stats

@@ -137,20 +137,56 @@ async def monitor_transaction(body: dict):
 
 
 # ---------------------------------------------------------------------------
-# POST /api/actions/escalate — escalate a transaction
+# POST /api/actions/authorize — manually authorize a transaction
 # ---------------------------------------------------------------------------
 
-@router.post("/actions/escalate")
-async def escalate_transaction(body: dict):
-    """Escalate a transaction for compliance review."""
+@router.post("/actions/authorize")
+async def authorize_transaction(body: dict):
+    """Authorize a transaction (replace escalate). Records missed scams if risk >= 70."""
     tx_id = body.get("tx_id") or body.get("tx_hash", "")
     notes = body.get("analyst_notes") or body.get("notes", "")
 
     if not tx_id:
         return {"detail": "tx_id is required"}
 
-    record = await log_action(tx_id, ActionType.ESCALATE, notes, body)
-    return {"status": "escalated", **record}
+    record = await log_action(tx_id, ActionType.AUTHORIZE, notes, body)
+    
+    # Check if this qualifies as a missed scam
+    risk_score = body.get("risk_score", 0)
+    if float(risk_score) >= 70:
+        triggered_rules = json.dumps(body.get("triggered_rules", []))
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("""
+                    INSERT INTO missed_scams (
+                        tx_id, risk_score, triggered_rules, authorized_at, authorized_by
+                    ) VALUES (?, ?, ?, ?, ?)
+                """, (tx_id, risk_score, triggered_rules, datetime.now(timezone.utc).isoformat(), "analyst_01"))
+                await db.commit()
+        except Exception as e:
+            print(f"❌ Failed to insert into missed_scams: {e}")
+
+    return {"status": "authorized", **record}
+
+# ---------------------------------------------------------------------------
+# GET /api/missed-scams — missed scams
+# ---------------------------------------------------------------------------
+
+@router.get("/missed-scams")
+async def get_missed_scams():
+    """Return all transactions that were authorized despite critical risk."""
+    scams = []
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM missed_scams ORDER BY authorized_at DESC") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    scams.append(dict(row))
+        return scams
+    except Exception as e:
+        print(f"❌ Failed to fetch missed scams: {e}")
+        return []
 
 
 # ---------------------------------------------------------------------------

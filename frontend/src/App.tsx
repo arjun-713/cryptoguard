@@ -9,6 +9,7 @@ import AlertSidebar from '@/components/AlertSidebar';
 import SuspiciousAddresses from '@/components/SuspiciousAddresses';
 import CaseReport from '@/components/CaseReport';
 import CaseLog from '@/components/CaseLog';
+import DemoPanel from '@/components/DemoPanel';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -250,6 +251,8 @@ function App() {
           </div>
         )}
       </main>
+
+      <DemoPanel />
 
       {/* ═══════════════ STATUS BAR ═══════════════ */}
       <footer className="shrink-0 flex items-center justify-between px-6 py-1.5 border-t bg-card/30">

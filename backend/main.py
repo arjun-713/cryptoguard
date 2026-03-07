@@ -16,6 +16,7 @@ from db.models import HealthResponse
 from api.transactions import router as transactions_router
 from api.actions import router as actions_router
 from api.demo import router as demo_router
+from api.broker import router as broker_router
 from blockchain import simulator
 
 
@@ -184,6 +185,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(transactions_router)
 app.include_router(actions_router)
 app.include_router(demo_router)
+app.include_router(broker_router)
 
 
 # ---------------------------------------------------------------------------

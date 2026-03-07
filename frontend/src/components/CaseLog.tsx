@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy } from 'lucide-react';
+import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CaseLogProps {
@@ -15,14 +15,18 @@ interface CaseLogProps {
 export default function CaseLog({ onViewCase }: CaseLogProps) {
     const [actions, setActions] = useState<CaseLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'ALL' | 'HOLD' | 'MONITOR' | 'ESCALATE'>('ALL');
+    const [filter, setFilter] = useState<'ALL' | 'HOLD' | 'MONITOR' | 'AUTHORIZE'>('ALL');
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [missedScams, setMissedScams] = useState<any[]>([]);
 
     const fetchActions = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/actions');
-            const data = await res.json();
-            setActions(data);
+            const [res, missedRes] = await Promise.all([
+                fetch('http://localhost:8000/api/actions'),
+                fetch('http://localhost:8000/api/missed-scams')
+            ]);
+            setActions(await res.json());
+            setMissedScams(await missedRes.json());
         } catch (err) {
             console.error('Failed to fetch action log:', err);
         } finally {
@@ -75,7 +79,7 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                         <div className="flex bg-muted/50 rounded-md p-1 pl-8 items-center gap-1">
-                            {['ALL', 'HOLD', 'MONITOR', 'ESCALATE'].map(f => (
+                            {['ALL', 'HOLD', 'MONITOR', 'AUTHORIZE'].map(f => (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f as any)}
@@ -152,7 +156,7 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                                                 variant="outline"
                                                 className={`uppercase tracking-widest text-[10px] h-6 px-3 border-transparent ${displayAction === 'HOLD' ? 'bg-red-500/20 text-red-400' :
                                                     displayAction === 'MONITOR' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        displayAction === 'ESCALATE' ? 'bg-orange-500/20 text-orange-400' :
+                                                        displayAction === 'AUTHORIZE' ? 'bg-green-500/20 text-green-400' :
                                                             'bg-secondary text-secondary-foreground'
                                                     }`}
                                             >
@@ -202,6 +206,29 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                         Immutable Audit Trail · Compliant with Financial Integrity Standards
                     </p>
                 </div>
+
+                {missedScams.length > 0 && (
+                    <div className="shrink-0 p-4 bg-orange-500/10 border-t border-orange-500/20">
+                        <h3 className="text-orange-500 font-bold mb-2 uppercase text-xs">Reviewed but Missed</h3>
+                        <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                            {missedScams.map(scam => {
+                                let rules = [];
+                                try {
+                                    rules = JSON.parse(scam.triggered_rules || '[]');
+                                } catch (e) { }
+                                return (
+                                    <div key={scam.id} className="text-xs text-orange-400 flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                        <span>
+                                            This transaction (<span className="font-mono">{scam.tx_id.slice(0, 10)}...</span>) was manually authorized
+                                            despite a critical risk score of <span className="font-bold">{scam.risk_score}/100</span>. {rules.join(', ')} were detected.
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </Card>
         </div>
     );
