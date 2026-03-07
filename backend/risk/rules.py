@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.blockchain.constants import (  # type: ignore
+from blockchain.constants import (  # type: ignore
     TORNADO_CASH_ADDRESSES,
     RULE_WEIGHTS,
     VELOCITY_WINDOW_SECONDS,

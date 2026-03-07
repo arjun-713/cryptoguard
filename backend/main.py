@@ -27,8 +27,11 @@ async def score_and_broadcast(tx: dict):
     from ai.explainer import generate_explanation
     from blockchain import wallet_store
 
-    history = wallet_store.get_wallet_history(tx.get("from_address", ""), limit=10)
-    result = await score_transaction(tx, history)
+    wallet_address = tx.get("from_address", "")
+    history = wallet_store.get_wallet_history(wallet_address, limit=10)
+    wallet_history_dict = {wallet_address: history}
+    
+    result = await score_transaction(tx, wallet_history_dict)
     
     if result.get("risk_tier") in ("medium", "critical"):
         explanation = ""
@@ -49,6 +52,8 @@ async def lifespan(app: FastAPI):
     print(f"   Database:        {settings.DATABASE_URL}")
 
     import asyncio
+    import logging
+    logging.basicConfig(level=logging.INFO)
     if settings.SIMULATION_MODE:
         import logging
         logging.info("Starting in SIMULATION MODE")

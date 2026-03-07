@@ -11,12 +11,12 @@ This function MUST complete in <10ms.  No network calls.
 import time
 from typing import Any
 
-from backend.blockchain.constants import (  # type: ignore
+from blockchain.constants import (  # type: ignore
     RULE_WEIGHTS,
     TIER_LOW_MAX,
     TIER_MEDIUM_MAX,
 )
-from backend.risk.rules import (  # type: ignore
+from risk.rules import (  # type: ignore
     check_blacklist_hit,
     check_tornado_proximity,
     check_peel_chain,
