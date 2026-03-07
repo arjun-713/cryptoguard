@@ -164,9 +164,9 @@ async def broker_withdraw(body: dict):
     from api.actions import log_action
     from db.models import ActionType
 
-    sender = body.get("sender")
-    receiver = body.get("receiver")
-    amount = body.get("amount", 0.0)
+    sender = body.get("sender") or body.get("from_address")
+    receiver = body.get("receiver") or body.get("to_address")
+    amount = body.get("amount") or body.get("eth_value", 0.0)
     customer_id = body.get("customer_id", "anon")
 
     if not sender or not receiver:
