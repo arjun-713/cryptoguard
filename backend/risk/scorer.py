@@ -1,0 +1,123 @@
+"""
+CryptoGuard — Risk Scoring Engine
+Main entry point: score_transaction(tx, wallet_history)
+
+Takes a normalized transaction dict, runs all 6 rules, sums the scores
+(capped at 100), determines the risk tier, and returns a RiskResult dict.
+
+This function MUST complete in <10ms.  No network calls.
+"""
+
+import time
+from typing import Any
+
+from backend.blockchain.constants import (
+    RULE_WEIGHTS,
+    TIER_LOW_MAX,
+    TIER_MEDIUM_MAX,
+)
+from backend.risk.rules import (
+    check_blacklist_hit,
+    check_tornado_proximity,
+    check_peel_chain,
+    check_high_velocity,
+    check_large_value,
+    check_new_wallet,
+)
+
+
+def _determine_tier(score: int) -> str:
+    """Map numeric score to risk tier string."""
+    if score <= TIER_LOW_MAX:
+        return "low"
+    elif score <= TIER_MEDIUM_MAX:
+        return "medium"
+    else:
+        return "critical"
+
+
+async def score_transaction(
+    tx: dict[str, Any],
+    wallet_history: dict[str, Any] | None = None,
+    blacklist: set[str] | None = None,
+) -> dict[str, Any]:
+    """
+    Score a single transaction against all 6 risk rules.
+
+    Args:
+        tx: Normalized transaction dict with keys:
+            - id, hash, from_address, to_address, eth_value,
+              gas_price_gwei, nonce, timestamp
+        wallet_history: Dict of recent transactions per wallet address.
+        blacklist: Optional set of known-bad wallet addresses (MEW dark list).
+
+    Returns:
+        RiskResult dict matching the frontend's expected shape:
+        {
+            "id": str,
+            "hash": str,
+            "from_address": str,
+            "to_address": str,
+            "eth_value": float,
+            "risk_score": int,        # 0–100
+            "risk_tier": str,         # "low" | "medium" | "critical"
+            "triggered_rules": list,  # e.g. ["BLACKLIST_HIT", "LARGE_VALUE"]
+            "hop_chain": list | None,
+            "ai_explanation": str | None,
+            "timestamp": str,
+            "scored_at_ms": int,
+        }
+    """
+    if wallet_history is None:
+        wallet_history = {}
+
+    if blacklist is None:
+        blacklist = set()
+
+    start_ms = int(time.time() * 1000)
+
+    # ------------------------------------------------------------------
+    # Run all 6 rules
+    # ------------------------------------------------------------------
+    rules = [
+        ("BLACKLIST_HIT",      check_blacklist_hit(tx, wallet_history, blacklist)),
+        ("TORNADO_PROXIMITY",  check_tornado_proximity(tx, wallet_history)),
+        ("PEEL_CHAIN",         check_peel_chain(tx, wallet_history)),
+        ("HIGH_VELOCITY",      check_high_velocity(tx, wallet_history)),
+        ("LARGE_VALUE",        check_large_value(tx, wallet_history)),
+        ("NEW_WALLET",         check_new_wallet(tx, wallet_history)),
+    ]
+
+    triggered_rules: list[str] = []
+    total_score: int = 0
+
+    for rule_name, rule_coro in rules:
+        triggered, contribution = await rule_coro
+        if triggered:
+            triggered_rules.append(rule_name)
+            total_score += contribution
+
+    # Cap at 100
+    total_score = min(total_score, 100)
+
+    risk_tier = _determine_tier(total_score)
+
+    # ------------------------------------------------------------------
+    # Build RiskResult
+    # ------------------------------------------------------------------
+    result: dict[str, Any] = {
+        "id":               tx.get("id", ""),
+        "hash":             tx.get("hash", ""),
+        "from_address":     tx.get("from_address", tx.get("from", "")),
+        "to_address":       tx.get("to_address", tx.get("to", "")),
+        "eth_value":        tx.get("eth_value", 0.0),
+        "risk_score":       total_score,
+        "risk_tier":        risk_tier,
+        "triggered_rules":  triggered_rules,
+        "hop_chain":        tx.get("hop_chain", None),
+        "ai_explanation":   None,  # Filled later by explainer for medium/critical
+        "timestamp":        tx.get("timestamp", ""),
+        "scored_at_ms":     start_ms,
+    }
+
+    return result

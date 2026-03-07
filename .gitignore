@@ -1,0 +1,27 @@
+# Environments
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+.pytest_cache/
+cryptoguard.db
+
+# Node.js / Frontend
+node_modules/
+dist/
+dist-ssr/
+build/
+.npm/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.log
