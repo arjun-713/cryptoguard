@@ -159,11 +159,45 @@ async def escalate_transaction(body: dict):
 
 @router.get("/actions")
 async def get_actions():
-    """Return all case actions (most recent first) along with full tx details."""
-    # Since log_action now records the full tx_details inline in _action_log
-    # we can just return it from memory, or fallback to the DB if we wanted to read from DB.
-    # We will return the in-memory log which already has the embedded tx_details
-    return list(reversed(_action_log))
+    """Return all case actions (most recent first) along with full tx details from the DB."""
+    actions = []
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM case_actions ORDER BY actioned_at DESC") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    rules_str = row["triggered_rules"]
+                    try:
+                        rules = json.loads(rules_str) if rules_str else []
+                    except:
+                        rules = []
+                        
+                    actions.append({
+                        "id": row["id"],
+                        "tx_id": row["tx_id"],
+                        "action": row["action"],
+                        "status": row.get("status", "ACTIVE"),
+                        "analyst_notes": row["analyst_notes"],
+                        "actioned_at": row["actioned_at"],
+                        "actioned_by": row["actioned_by"],
+                        "tx_details": {
+                            "id": row["tx_id"],
+                            "hash": row["tx_id"],
+                            "from": row["from_address"],
+                            "to": row["to_address"],
+                            "eth_value": row["eth_value"],
+                            "risk_score": row["risk_score"],
+                            "risk_tier": row["risk_tier"],
+                            "triggered_rules": rules,
+                            "ai_explanation": row["ai_explanation"],
+                            "timestamp": row["tx_timestamp"]
+                        }
+                    })
+        return actions
+    except Exception as e:
+        print(f"❌ Failed to fetch actions from DB: {e}")
+        return list(reversed(_action_log))
 
 
 # ---------------------------------------------------------------------------
