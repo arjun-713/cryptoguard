@@ -44,6 +44,7 @@ export interface CaseLogEntry {
     analyst_notes: string;
     actioned_at: string;
     actioned_by: string;
+    tx_details?: Transaction | null;
 }
 
 export type RiskTier = 'low' | 'medium' | 'critical';

@@ -7,6 +7,7 @@ import ExplanationPanel from '@/components/ExplanationPanel';
 import ActionButtons from '@/components/ActionButtons';
 import AlertSidebar from '@/components/AlertSidebar';
 import SuspiciousAddresses from '@/components/SuspiciousAddresses';
+import CaseReport from '@/components/CaseReport';
 import CaseLog from '@/components/CaseLog';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Shield, Activity, Zap, Radio, LayoutDashboard, ClipboardList, ShieldAlert } from 'lucide-react';
 
-type active_view = 'dashboard' | 'case_log' | 'suspicious';
+type active_view = 'dashboard' | 'case_log' | 'suspicious' | 'case_report';
 
 function App() {
   const { transactions, isConnected, isDemoMode, setDemoMode, resetFeed, error } = useTransactionStream();
@@ -22,6 +23,8 @@ function App() {
   const [activeView, setActiveView] = useState<active_view>('dashboard');
   const [actionLog, setActionLog] = useState<Map<string, ActionType>>(new Map());
   const [stats, setStats] = useState<any>(null);
+  const [selectedCase, setSelectedCase] = useState<any | null>(null);
+  const [caseList, setCaseList] = useState<any[]>([]);
 
   // Fetch metrics (Fix 5)
   useEffect(() => {
@@ -222,13 +225,28 @@ function App() {
 
         {activeView === 'case_log' && (
           <div className="flex-1 p-3 overflow-hidden">
-            <CaseLog />
+            <CaseLog onViewCase={(c: any, list: any[]) => {
+              setSelectedCase(c);
+              setCaseList(list);
+              setActiveView('case_report');
+            }} />
           </div>
         )}
 
         {activeView === 'suspicious' && (
           <div className="flex-1 p-3 overflow-hidden">
             <SuspiciousAddresses />
+          </div>
+        )}
+
+        {activeView === 'case_report' && selectedCase && (
+          <div className="flex-1 p-3 overflow-y-auto">
+            <CaseReport
+              caseData={selectedCase}
+              caseList={caseList}
+              onNavigate={(c: any) => setSelectedCase(c)}
+              onBack={() => setActiveView('case_log')}
+            />
           </div>
         )}
       </main>

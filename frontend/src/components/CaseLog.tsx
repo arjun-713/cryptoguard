@@ -4,11 +4,19 @@ import { truncateAddress, timeAgo } from '@/data/types';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ClipboardList, Bot, User, Clock, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export default function CaseLog() {
+interface CaseLogProps {
+    onViewCase: (c: CaseLogEntry, list: CaseLogEntry[]) => void;
+}
+
+export default function CaseLog({ onViewCase }: CaseLogProps) {
     const [actions, setActions] = useState<CaseLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'ALL' | 'HOLD' | 'MONITOR' | 'ESCALATE'>('ALL');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const fetchActions = async () => {
         try {
@@ -28,6 +36,29 @@ export default function CaseLog() {
         return () => clearInterval(interval);
     }, []);
 
+    const handleCopy = (e: React.MouseEvent, text: string) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        setCopiedId(text);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const getScoreColor = (score: number) => {
+        if (score < 40) return 'bg-emerald-500';
+        if (score < 70) return 'bg-amber-500';
+        return 'bg-rose-500';
+    };
+
+    const sortedActions = [...actions].sort((a, b) =>
+        new Date(b.actioned_at).getTime() - new Date(a.actioned_at).getTime()
+    );
+
+    const filteredActions = sortedActions.filter(act => {
+        if (filter === 'ALL') return true;
+        const displayAction = act.action.replace('AUTO_', '').toUpperCase();
+        return displayAction === filter;
+    });
+
     return (
         <div className="flex flex-col h-full bg-background p-4 gap-4 animate-fade-in">
             <div className="flex items-center justify-between shrink-0">
@@ -40,6 +71,25 @@ export default function CaseLog() {
                         </p>
                     </div>
                 </div>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+                        <div className="flex bg-muted/50 rounded-md p-1 pl-8 items-center gap-1">
+                            {['ALL', 'HOLD', 'MONITOR', 'ESCALATE'].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f as any)}
+                                    className={`px-3 py-1 rounded text-xs font-bold tracking-wider transition-colors ${filter === f
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                                        }`}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <Card className="flex-1 min-h-0 flex flex-col border-primary/10 bg-card/50 overflow-hidden">
@@ -48,7 +98,8 @@ export default function CaseLog() {
                     <div className="col-span-2">Source</div>
                     <div className="col-span-2">Transaction ID</div>
                     <div className="col-span-2 text-center">Action</div>
-                    <div className="col-span-3">Analyst Notes / System Reason</div>
+                    <div className="col-span-1 text-center">Risk</div>
+                    <div className="col-span-2">Analyst Notes</div>
                     <div className="col-span-2 text-right">Timestamp</div>
                 </div>
 
@@ -57,53 +108,87 @@ export default function CaseLog() {
                         <div className="flex items-center justify-center p-20">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         </div>
-                    ) : actions.length === 0 ? (
+                    ) : filteredActions.length === 0 ? (
                         <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
                             <CheckCircle2 className="w-12 h-12 mb-4 opacity-20" />
-                            <p>No actions taken yet. All quiet on the front.</p>
+                            <p>No actions match this filter.</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-border">
-                            {actions.map((act) => {
+                            {filteredActions.map((act) => {
                                 const isAuto = act.action.startsWith('AUTO_');
-                                const displayAction = act.action.replace('AUTO_', '');
+                                const displayAction = act.action.replace('AUTO_', '').toUpperCase();
+                                const score = act.tx_details?.risk_score ?? 0;
 
                                 return (
                                     <div
                                         key={`${act.id}-${act.tx_id}`}
-                                        className="grid grid-cols-12 px-6 py-4 items-center gap-2 hover:bg-accent/10 transition-colors"
+                                        onClick={() => onViewCase(act, filteredActions)}
+                                        className="grid grid-cols-12 px-6 py-4 items-center gap-2 hover:bg-accent/20 cursor-pointer transition-colors"
                                     >
                                         <div className="col-span-1 font-mono text-[10px] text-muted-foreground">
                                             #{act.id}
                                         </div>
                                         <div className="col-span-2 flex items-center gap-2">
                                             {isAuto ? (
-                                                <Badge variant="outline" className="text-primary border-primary/30 gap-1.5 h-6">
+                                                <Badge variant="outline" className="text-rose-400 border-rose-400/30 gap-1.5 h-6">
                                                     <Bot className="w-3 h-3" /> Automatic
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="text-muted-foreground gap-1.5 h-6">
+                                                <Badge variant="outline" className="text-emerald-400 border-emerald-400/30 gap-1.5 h-6">
                                                     <User className="w-3 h-3" /> Manual
                                                 </Badge>
                                             )}
                                         </div>
-                                        <div className="col-span-2 font-mono text-xs text-foreground truncate">
-                                            {act.tx_id}
+                                        <div className="col-span-2 flex items-center gap-1 group">
+                                            <span className="font-mono text-xs text-foreground shrink-0 cursor-copy hover:text-cyan-400 transition-colors"
+                                                onClick={(e) => handleCopy(e, act.tx_id)}>
+                                                {truncateAddress(act.tx_id)}
+                                            </span>
+                                            {copiedId === act.tx_id && <span className="text-[10px] text-cyan-400">Copied!</span>}
                                         </div>
                                         <div className="col-span-2 text-center">
                                             <Badge
-                                                variant={displayAction === 'hold' || displayAction === 'HOLD' ? "destructive" : "secondary"}
-                                                className="uppercase tracking-widest text-[10px] h-6 px-3"
+                                                variant="outline"
+                                                className={`uppercase tracking-widest text-[10px] h-6 px-3 border-transparent ${displayAction === 'HOLD' ? 'bg-red-500/20 text-red-400' :
+                                                    displayAction === 'MONITOR' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        displayAction === 'ESCALATE' ? 'bg-orange-500/20 text-orange-400' :
+                                                            'bg-secondary text-secondary-foreground'
+                                                    }`}
                                             >
                                                 {displayAction}
                                             </Badge>
                                         </div>
-                                        <div className="col-span-3 text-xs italic text-muted-foreground line-clamp-2">
-                                            "{act.analyst_notes || 'No notes provided.'}"
+                                        <div className="col-span-1 flex items-center justify-center gap-2">
+                                            <span className="font-bold text-[10px] w-5 text-right font-mono">{score}</span>
+                                            <TooltipProvider delayDuration={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                            <div className={`h-full ${getScoreColor(score)}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Score: {score}/100</TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </div>
-                                        <div className="col-span-2 text-right text-[11px] text-muted-foreground font-mono flex items-center justify-end gap-2">
-                                            <Clock className="w-3 h-3" />
-                                            {timeAgo(new Date(act.actioned_at).getTime())}
+                                        <div className="col-span-2 text-xs text-muted-foreground truncate pr-2">
+                                            {act.analyst_notes ? `"${act.analyst_notes.length > 40 ? act.analyst_notes.substring(0, 40) + '...' : act.analyst_notes}"` : <span className="italic opacity-50">No notes</span>}
+                                        </div>
+                                        <div className="col-span-2 text-right flex items-center justify-end">
+                                            <TooltipProvider delayDuration={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2 cursor-help">
+                                                            <Clock className="w-3 h-3" />
+                                                            {timeAgo(new Date(act.actioned_at).getTime())}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="left">
+                                                        {new Date(act.actioned_at).toLocaleString()}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </div>
                                     </div>
                                 );
