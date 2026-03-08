@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { Transaction } from '@/data/types';
 import { getRiskTier, getRiskColor } from '@/data/types';
 import { BrainCircuit } from 'lucide-react';
@@ -8,7 +8,7 @@ interface ExplanationPanelProps {
     transaction: Transaction | null;
 }
 
-export default function ExplanationPanel({ transaction }: ExplanationPanelProps) {
+export default memo(function ExplanationPanel({ transaction }: ExplanationPanelProps) {
     const [displayedText, setDisplayedText] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
 
@@ -24,15 +24,16 @@ export default function ExplanationPanel({ transaction }: ExplanationPanelProps)
         setIsStreaming(true);
 
         let charIndex = 0;
+        const CHARS_PER_TICK = 3;
         const interval = setInterval(() => {
             if (charIndex < fullText.length) {
-                setDisplayedText(fullText.slice(0, charIndex + 1));
-                charIndex++;
+                charIndex = Math.min(charIndex + CHARS_PER_TICK, fullText.length);
+                setDisplayedText(fullText.slice(0, charIndex));
             } else {
                 setIsStreaming(false);
                 clearInterval(interval);
             }
-        }, 12);
+        }, 20);
 
         return () => clearInterval(interval);
     }, [transaction?.id, transaction?.ai_explanation]);
@@ -108,5 +109,4 @@ export default function ExplanationPanel({ transaction }: ExplanationPanelProps)
             </ScrollArea>
         </div>
     );
-}
-
+});

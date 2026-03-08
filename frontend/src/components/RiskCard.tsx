@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Transaction } from '@/data/types';
 import { getRiskTier, getRiskColor, getRiskLabel, formatRuleName } from '@/data/types';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ const ruleIcons: Record<string, string> = {
     RUG_PULL_PATTERN: '🎭',
 };
 
-export default function RiskCard({ transaction, isAuthorized }: RiskCardProps) {
+export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardProps) {
     if (!transaction) {
         return (
             <div className="flex flex-col items-center justify-center h-full py-8 px-6">
@@ -164,4 +165,4 @@ export default function RiskCard({ transaction, isAuthorized }: RiskCardProps) {
             </ScrollArea>
         </div>
     );
-}
+});

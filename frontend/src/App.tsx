@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Transaction, ActionType } from '@/data/types';
 import { useTransactionStream } from '@/hooks/useTransactionStream';
 import TransactionFeed from '@/components/TransactionFeed';
@@ -39,10 +39,14 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const hasAutoSelected = useRef(false);
   useEffect(() => {
-    if (!selectedTx && transactions.length > 0) {
+    if (!selectedTx && !hasAutoSelected.current && transactions.length > 0) {
       const critical = transactions.find(tx => tx.risk_score >= 70);
-      if (critical) setSelectedTx(critical);
+      if (critical) {
+        setSelectedTx(critical);
+        hasAutoSelected.current = true;
+      }
     }
   }, [transactions, selectedTx]);
 
@@ -74,7 +78,7 @@ function App() {
     setActionLog(prev => new Map(prev).set(txId, action));
   }, []);
 
-  const alertCount = transactions.filter(tx => tx.risk_score >= 40).length;
+  const alertCount = useMemo(() => transactions.filter(tx => tx.risk_score >= 40).length, [transactions]);
 
   const [toast, setToast] = useState<string | null>(null);
   const [scamCooldown, setScamCooldown] = useState(false);

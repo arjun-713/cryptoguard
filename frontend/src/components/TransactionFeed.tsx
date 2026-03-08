@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Transaction, ActionType } from '@/data/types';
 import { truncateAddress, formatEth, timeAgo, getRiskTier, getRiskColor } from '@/data/types';
 import { walletLabels } from '@/data/mockData';
@@ -12,7 +13,7 @@ interface TransactionFeedProps {
     actionLog?: Map<string, ActionType>;
 }
 
-export default function TransactionFeed({ transactions, selectedTxId, onSelect, actionLog }: TransactionFeedProps) {
+export default memo(function TransactionFeed({ transactions, selectedTxId, onSelect, actionLog }: TransactionFeedProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b">
@@ -133,4 +134,4 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect, 
             </ScrollArea>
         </div>
     );
-}
+});

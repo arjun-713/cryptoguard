@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Transaction } from '@/data/types';
 import { truncateAddress, timeAgo, getRiskTier, getRiskColor, getRiskLabel } from '@/data/types';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ interface AlertSidebarProps {
     onSelect: (tx: Transaction) => void;
 }
 
-export default function AlertSidebar({ transactions, selectedTxId, onSelect }: AlertSidebarProps) {
+export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect }: AlertSidebarProps) {
     const flaggedTxs = transactions
         .filter(tx => tx.risk_score >= 40)
         .slice(0, 8);
@@ -96,4 +97,4 @@ export default function AlertSidebar({ transactions, selectedTxId, onSelect }: A
             </div>
         </div>
     );
-}
+});
