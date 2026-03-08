@@ -213,16 +213,28 @@ async def broker_withdraw(body: dict):
         status = "MONITOR"
         await increment_stat("auto_monitored")
 
-    # 4. Persistence and Broadcasting
+    # 4. Generate AI Explanation
+    from ai.explainer import generate_explanation
+
+    ai_explanation = result.get("ai_explanation", "")
     enriched_tx = {
         **tx,
         "risk_score": score,
         "risk_tier": tier,
         "triggered_rules": triggered,
-        "ai_explanation": result.get("ai_explanation", "Simulated scam withdrawal detected."),
         "auto_held": status == "HELD",
         "auto_monitored": status == "MONITOR"
     }
+
+    if tier in ["medium", "critical"] and not ai_explanation:
+        ai_explanation = ""
+        async for chunk in generate_explanation(enriched_tx):
+            ai_explanation += chunk
+            
+    if not ai_explanation:
+        ai_explanation = "Simulated scam withdrawal detected."
+        
+    enriched_tx["ai_explanation"] = ai_explanation
     
     # Store in memory feed
     wallet_store.record_transaction(enriched_tx)
@@ -261,7 +273,8 @@ async def broker_withdraw(body: dict):
         "risk_tier": tier,
         "reason": f"Transaction score is {score}/100 based on {len(triggered)} suspicious signals.",
         "action_id": action_id,
-        "triggered_rules": triggered
+        "triggered_rules": triggered,
+        "ai_explanation": ai_explanation
     }
 
 

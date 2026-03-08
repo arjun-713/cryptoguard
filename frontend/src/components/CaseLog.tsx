@@ -64,7 +64,7 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
     });
 
     return (
-        <div className="flex flex-col h-full bg-background p-4 gap-4 animate-fade-in">
+        <div className="flex flex-col bg-background p-4 gap-4 animate-fade-in overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     <ClipboardList className="w-8 h-8 text-primary" />
@@ -208,36 +208,6 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                 </div>
             </Card>
 
-            {/* CHANGE 3: Reviewed but Missed Section */}
-            {missedScams.length > 0 && (
-                <div className="mt-6 space-y-3 pb-8">
-                    <div className="flex items-center gap-2 text-orange-500">
-                        <ShieldAlert className="w-5 h-5" />
-                        <h2 className="text-sm font-black uppercase tracking-widest">⚠ REVIEWED BUT MISSED (HIGH RISK OVERRIDES)</h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {missedScams.map(scam => (
-                            <Card key={scam.id} className="p-4 bg-orange-500/5 border-orange-500/30 flex flex-col gap-2 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                                <div className="flex justify-between items-start">
-                                    <Badge className="bg-orange-500 text-white font-mono text-[10px]">SCAM OVERRIDE</Badge>
-                                    <span className="font-mono text-[10px] text-orange-500/60">{new Date(scam.recorded_at).toLocaleTimeString()}</span>
-                                </div>
-                                <div className="font-mono text-[10px] font-bold text-foreground truncate">
-                                    {scam.tx_id}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-muted-foreground uppercase font-sans font-bold">Risk Score</span>
-                                    <span className="text-sm font-black text-orange-500 font-mono">{scam.risk_score}</span>
-                                </div>
-                                <p className="text-[10px] leading-tight italic text-orange-200/70 border-l border-orange-500/30 pl-2">
-                                    "{scam.analyst_notes}"
-                                </p>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

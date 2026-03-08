@@ -32,7 +32,7 @@ export default function SuspiciousAddresses() {
     const repeatOffenders = addresses.filter(a => a.times_flagged >= 2).length;
 
     return (
-        <div className="flex flex-col h-full bg-background p-4 gap-4 animate-fade-in">
+        <div className="flex flex-col bg-background p-4 gap-4 animate-fade-in overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     <ShieldAlert className="w-8 h-8 text-primary" />
