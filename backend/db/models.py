@@ -21,7 +21,6 @@ class RiskTier(str, Enum):
 class ActionType(str, Enum):
     HOLD = "hold"
     MONITOR = "monitor"
-    ESCALATE = "escalate"
     AUTHORIZE = "authorize"
     AUTO_HOLD = "AUTO_HOLD"
     AUTO_MONITOR = "AUTO_MONITOR"
@@ -126,3 +125,4 @@ class HealthResponse(BaseModel):
     simulation_mode: bool = True
     transactions_processed: int = 0
     ofac_last_updated: str = "Never"
+    demo_mode: bool = False

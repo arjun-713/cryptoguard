@@ -9,6 +9,7 @@ import HashLink from '@/components/HashLink';
 
 interface RiskCardProps {
     transaction: Transaction | null;
+    isAuthorized?: boolean;
 }
 
 const ruleIcons: Record<string, string> = {
@@ -21,7 +22,7 @@ const ruleIcons: Record<string, string> = {
     RUG_PULL_PATTERN: '🎭',
 };
 
-export default function RiskCard({ transaction }: RiskCardProps) {
+export default function RiskCard({ transaction, isAuthorized }: RiskCardProps) {
     if (!transaction) {
         return (
             <div className="flex flex-col items-center justify-center h-full py-8 px-6">
@@ -60,6 +61,19 @@ export default function RiskCard({ transaction }: RiskCardProps) {
                     <HashLink hash={transaction.hash} />
                 </div>
             </div>
+
+            {/* CHANGE 3: Warn if authorized despite high risk */}
+            {isAuthorized && transaction.risk_score >= 70 && (
+                <div className="mx-5 mt-2 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2.5 flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-300">
+                    <div className="p-1.5 bg-orange-500 rounded-md shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-0.5">⚠ POTENTIAL SCAM — Unauthorized Exception</p>
+                        <p className="text-[9px] text-orange-200/70 leading-tight">Broker manually authorized this despite CRITICAL risk score.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Score + tier — compact horizontal row */}
             <div className="shrink-0 flex items-center gap-4 px-5 py-3 border-b bg-muted/20">

@@ -16,7 +16,6 @@ from db.models import HealthResponse
 from api.transactions import router as transactions_router
 from api.actions import router as actions_router
 from api.demo import router as demo_router
-from api.broker import router as broker_router
 from blockchain import simulator
 
 
@@ -119,22 +118,15 @@ async def lifespan(app: FastAPI):
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")
 
-    import logging
-    logging.basicConfig(level=logging.INFO)
-    if settings.SIMULATION_MODE:
-        import logging
-        logging.info("Starting in SIMULATION MODE")
-        asyncio.create_task(simulator.start_simulation())
+    # CHANGE 4: Initialize based on env, but allow dynamic toggling
+    simulator.demo_mode_active = settings.SIMULATION_MODE
+    
+    if simulator.demo_mode_active:
+        print("🎬 Starting in SIMULATION MODE")
+        await simulator.start_simulation()
     else:
-        import logging
-        logging.info("Starting in LIVE MODE — connecting to Ethereum mempool")
-        from blockchain.stream import start_blockchain_listener
-        asyncio.create_task(
-            start_blockchain_listener(
-                alchemy_wss_url=settings.ALCHEMY_WSS_URL,
-                score_and_broadcast=score_and_broadcast,
-            )
-        )
+        print("🌐 Starting in LIVE MODE")
+        await start_live_stream()
 
     yield
 
@@ -184,8 +176,6 @@ async def log_requests(request: Request, call_next):
 # Routers
 app.include_router(transactions_router)
 app.include_router(actions_router)
-app.include_router(demo_router)
-app.include_router(broker_router)
 
 
 # ---------------------------------------------------------------------------
@@ -196,12 +186,42 @@ app.include_router(broker_router)
 async def health_check():
     """System health check — judges/mentors can hit this to confirm backend is alive."""
     from blockchain.constants import ofac_last_updated
-    return HealthResponse(
-        status="ok",
-        simulation_mode=settings.SIMULATION_MODE,
-        transactions_processed=simulator.get_tx_counter(),
-        ofac_last_updated=ofac_last_updated
-    )
+    return {
+        "status": "ok",
+        "simulation_mode": settings.SIMULATION_MODE,
+        "transactions_processed": simulator.get_tx_counter(),
+        "ofac_last_updated": ofac_last_updated,
+        "demo_mode": simulator.demo_mode_active
+    }
+
+# --- Task Management for CHANGE 4 ---
+_blockchain_task: asyncio.Task | None = None
+
+async def start_live_stream():
+    global _blockchain_task
+    if _blockchain_task and not _blockchain_task.done():
+        return
+    
+    from blockchain.stream import start_blockchain_listener
+    if settings.ALCHEMY_WSS_URL:
+        _blockchain_task = asyncio.create_task(
+            start_blockchain_listener(
+                alchemy_wss_url=settings.ALCHEMY_WSS_URL,
+                score_and_broadcast=score_and_broadcast,
+            )
+        )
+        print("🟢 Live blockchain stream started")
+
+async def stop_live_stream():
+    global _blockchain_task
+    if _blockchain_task:
+        _blockchain_task.cancel()
+        try:
+            await _blockchain_task
+        except asyncio.CancelledError:
+            pass
+        _blockchain_task = None
+        print("🛑 Live blockchain stream stopped")
 
 
 # ---------------------------------------------------------------------------
@@ -224,3 +244,17 @@ async def websocket_stream(ws: WebSocket):
         pass
     finally:
         simulator.unregister_client(ws)
+
+@app.post("/api/demo/start", tags=["demo"])
+async def start_demo_mode():
+    simulator.demo_mode_active = True
+    await stop_live_stream()
+    await simulator.start_simulation()
+    return {"demo_mode": True}
+
+@app.post("/api/demo/stop", tags=["demo"])
+async def stop_demo_mode():
+    simulator.demo_mode_active = False
+    await simulator.stop_simulation()
+    await start_live_stream()
+    return {"demo_mode": False}

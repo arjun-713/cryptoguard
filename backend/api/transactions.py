@@ -181,7 +181,10 @@ async def broker_withdraw(body: dict):
         "eth_value": float(amount),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "wallet_history_count": 0,
-        "hop_chain": []
+        "hop_chain": body.get("hop_chain", []),
+        "from_wallet_age_days": body.get("wallet_age_days"),
+        "from_wallet_recent_txs": body.get("from_wallet_recent_txs", []),
+        "nonce": body.get("nonce")
     }
 
     # 1. Enrich (if live)
@@ -210,11 +213,31 @@ async def broker_withdraw(body: dict):
         status = "MONITOR"
         await increment_stat("auto_monitored")
 
-    # 4. Auto-hold persistence
+    # 4. Persistence and Broadcasting
+    enriched_tx = {
+        **tx,
+        "risk_score": score,
+        "risk_tier": tier,
+        "triggered_rules": triggered,
+        "ai_explanation": result.get("ai_explanation", "Simulated scam withdrawal detected."),
+        "auto_held": status == "HELD",
+        "auto_monitored": status == "MONITOR"
+    }
+    
+    # Store in memory feed
+    wallet_store.record_transaction(enriched_tx)
+    
+    # Broadcast to WebSocket
+    from blockchain import simulator
+    await simulator.broadcast({
+        "type": "new_transaction",
+        "data": enriched_tx
+    })
+
     action_id = None
     if status == "HELD":
         notes = f"Auto-held via Broker API. Score: {score}. Customer: {customer_id}"
-        record = log_action(tx["id"], ActionType.AUTO_HOLD, notes)
+        record = await log_action(tx["id"], ActionType.AUTO_HOLD, notes, enriched_tx)
         action_id = record["id"]
 
     # 5. Optional Webhook Decision

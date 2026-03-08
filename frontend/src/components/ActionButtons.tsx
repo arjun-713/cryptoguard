@@ -20,7 +20,7 @@ interface ActionConfig {
 const actions: ActionConfig[] = [
     { type: 'hold', endpoint: '/api/actions/hold', label: 'HOLD', icon: HandMetal, colorClass: 'bg-red-600 hover:bg-red-700 text-white', successMsg: 'Transaction held successfully' },
     { type: 'monitor', endpoint: '/api/actions/monitor', label: 'MONITOR', icon: Eye, colorClass: 'bg-yellow-500 hover:bg-yellow-600 text-black', successMsg: 'Transaction added to watchlist' },
-    { type: 'authorize' as any, endpoint: '/api/actions/authorize', label: 'AUTHORIZE', icon: Check, colorClass: 'bg-green-600 hover:bg-green-700 text-white', successMsg: 'Manually authorized by broker' },
+    { type: 'authorize', endpoint: '/api/actions/authorize', label: 'AUTHORIZE', icon: Check, colorClass: 'bg-green-500 hover:bg-green-600 text-white', successMsg: 'Transaction authorized by broker' },
 ];
 
 export default function ActionButtons({ transaction, onAction }: ActionButtonsProps) {
@@ -53,7 +53,7 @@ export default function ActionButtons({ transaction, onAction }: ActionButtonsPr
                     timestamp: transaction.receivedAt ? new Date(transaction.receivedAt).toISOString() : new Date().toISOString(),
                     notes: config.type === 'hold' ? "Manual hold by broker" :
                         config.type === 'monitor' ? "Flagged for monitoring" :
-                            "Manually authorized by broker after review"
+                            "Broker authorized transaction"
                 })
             });
 

@@ -9,7 +9,6 @@ import AlertSidebar from '@/components/AlertSidebar';
 import SuspiciousAddresses from '@/components/SuspiciousAddresses';
 import CaseReport from '@/components/CaseReport';
 import CaseLog from '@/components/CaseLog';
-import DemoPanel from '@/components/DemoPanel';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,8 +76,94 @@ function App() {
 
   const alertCount = transactions.filter(tx => tx.risk_score >= 40).length;
 
+  const [toast, setToast] = useState<string | null>(null);
+  const [scamCooldown, setScamCooldown] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleSimulateScam = async () => {
+    if (scamCooldown) return;
+    setScamCooldown(true);
+    setTimeout(() => setScamCooldown(false), 2000);
+
+    try {
+      const payload = {
+        "from_address": "0xd4b88df4d29f5cedd6857912842cff3b20c8cfa3",
+        "to_address": "0xcleanbroker999",
+        "eth_value": 15.0,
+        "wallet_age_days": 2,
+        "nonce": 1,
+        "hop_chain": ["0xhop1", "0xhop2", "0xhop3"],
+        "from_wallet_recent_txs": [
+          { "timestamp": "2024-01-01T11:59:50Z" },
+          { "timestamp": "2024-01-01T11:59:45Z" },
+          { "timestamp": "2024-01-01T11:59:40Z" },
+          { "timestamp": "2024-01-01T11:59:35Z" },
+          { "timestamp": "2024-01-01T11:59:30Z" }
+        ]
+      };
+
+      const res = await fetch('http://localhost:8000/api/broker/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        showToast("⚠ Scam transaction injected — watch the feed");
+      }
+    } catch (err) {
+      console.error("Scam injection failed:", err);
+    }
+  };
+
+  // Sync demo mode state with backend (CHANGE 4)
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/health');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.demo_mode !== isDemoMode) {
+            setDemoMode(data.demo_mode);
+          }
+        }
+      } catch (err) { /* ignore */ }
+    };
+    checkHealth();
+  }, []);
+
+  const handleToggleDemo = async () => {
+    const newMode = !isDemoMode;
+    const endpoint = newMode ? '/api/demo/start' : '/api/demo/stop';
+
+    try {
+      const res = await fetch(`http://localhost:8000${endpoint}`, { method: 'POST' });
+      if (res.ok) {
+        setDemoMode(newMode);
+        resetFeed();
+        showToast(newMode ? "Demo mode active — using simulation data" : "Live mode active — connected to Ethereum");
+      }
+    } catch (err) {
+      console.error("Demo toggle failed:", err);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden text-foreground">
+      {/* ═══════════════ TOAST ═══════════════ */}
+      {toast && (
+        <div className="fixed top-20 right-6 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 border border-destructive/20 backdrop-blur-md">
+            <ShieldAlert className="w-4 h-4" />
+            <span className="text-xs font-bold tracking-tight">{toast}</span>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════ HEADER ═══════════════ */}
       <header className="shrink-0 border-b bg-card/50 backdrop-blur-sm px-6 py-3 z-10">
         <div className="flex items-center justify-between">
@@ -152,31 +237,24 @@ function App() {
 
             <Separator orientation="vertical" className="h-6" />
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
-              <Radio className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs text-muted-foreground">Engine:</span>
-              <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-primary border-primary/30">
-                ACTIVE
-              </Badge>
-            </div>
-
             <Button
-              variant={isDemoMode ? "secondary" : "outline"}
+              variant="outline"
               size="sm"
-              className="h-7 text-[10px] tracking-widest uppercase font-mono px-3 ml-2"
-              onClick={() => setDemoMode(!isDemoMode)}
+              disabled={scamCooldown}
+              className="h-7 text-[10px] tracking-widest uppercase font-bold px-3 border-red-500/50 text-red-500 bg-red-500/5 hover:bg-red-500/10"
+              onClick={handleSimulateScam}
             >
-              {isDemoMode ? 'Demo Mode: ON' : 'Start Demo'}
+              ⚠ Simulate Scam
             </Button>
 
-            <Separator orientation="vertical" className="h-6 mx-1" />
-
-            <div className="flex items-center gap-1.5 w-[72px]">
-              <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-primary' : (isDemoMode ? 'bg-chart-2' : 'bg-destructive')}`} />
-              <span className={`text-xs font-mono font-medium ${isConnected ? 'text-primary' : (isDemoMode ? 'text-chart-2' : 'text-destructive')}`}>
-                {isConnected ? 'LIVE' : (isDemoMode ? 'DEMO' : 'OFFLINE')}
-              </span>
-            </div>
+            <Button
+              variant={isDemoMode ? "default" : "outline"}
+              size="sm"
+              className={`h-7 text-[10px] tracking-widest uppercase font-mono px-3 ${isDemoMode ? 'bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse' : 'bg-white text-black hover:bg-gray-100'}`}
+              onClick={handleToggleDemo}
+            >
+              {isDemoMode ? '■ Stop Demo' : 'Start Demo'}
+            </Button>
           </div>
         </div>
       </header>
@@ -198,7 +276,10 @@ function App() {
             {/* Center column — Risk + Explanation */}
             <div className="flex-[2] min-w-0 min-h-0 flex flex-col gap-3">
               <Card className="flex-1 min-h-0 flex flex-col border-primary/10">
-                <RiskCard transaction={selectedTx} />
+                <RiskCard
+                  transaction={selectedTx}
+                  isAuthorized={selectedTx ? actionLog.get(selectedTx.id) === 'authorize' : false}
+                />
               </Card>
               <Card className="flex-1 min-h-0 flex flex-col border-primary/10">
                 <ExplanationPanel transaction={selectedTx} />
@@ -251,8 +332,6 @@ function App() {
           </div>
         )}
       </main>
-
-      <DemoPanel />
 
       {/* ═══════════════ STATUS BAR ═══════════════ */}
       <footer className="shrink-0 flex items-center justify-between px-6 py-1.5 border-t bg-card/30">

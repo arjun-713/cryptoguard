@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy, AlertCircle } from 'lucide-react';
+import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy, ShieldAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CaseLogProps {
@@ -21,12 +21,12 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
 
     const fetchActions = async () => {
         try {
-            const [res, missedRes] = await Promise.all([
-                fetch('http://localhost:8000/api/actions'),
-                fetch('http://localhost:8000/api/missed-scams')
-            ]);
-            setActions(await res.json());
-            setMissedScams(await missedRes.json());
+            const res = await fetch('http://localhost:8000/api/actions');
+            const data = await res.json();
+            setActions(data);
+
+            const missedRes = await fetch('http://localhost:8000/api/missed_scams');
+            if (missedRes.ok) setMissedScams(await missedRes.json());
         } catch (err) {
             console.error('Failed to fetch action log:', err);
         } finally {
@@ -156,7 +156,7 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                                                 variant="outline"
                                                 className={`uppercase tracking-widest text-[10px] h-6 px-3 border-transparent ${displayAction === 'HOLD' ? 'bg-red-500/20 text-red-400' :
                                                     displayAction === 'MONITOR' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        displayAction === 'AUTHORIZE' ? 'bg-green-500/20 text-green-400' :
+                                                        (displayAction === 'ESCALATE' || displayAction === 'AUTHORIZE') ? 'bg-orange-500/20 text-orange-400' :
                                                             'bg-secondary text-secondary-foreground'
                                                     }`}
                                             >
@@ -206,30 +206,38 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
                         Immutable Audit Trail · Compliant with Financial Integrity Standards
                     </p>
                 </div>
-
-                {missedScams.length > 0 && (
-                    <div className="shrink-0 p-4 bg-orange-500/10 border-t border-orange-500/20">
-                        <h3 className="text-orange-500 font-bold mb-2 uppercase text-xs">Reviewed but Missed</h3>
-                        <div className="space-y-2 max-h-[150px] overflow-y-auto">
-                            {missedScams.map(scam => {
-                                let rules = [];
-                                try {
-                                    rules = JSON.parse(scam.triggered_rules || '[]');
-                                } catch (e) { }
-                                return (
-                                    <div key={scam.id} className="text-xs text-orange-400 flex items-start gap-2">
-                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                        <span>
-                                            This transaction (<span className="font-mono">{scam.tx_id.slice(0, 10)}...</span>) was manually authorized
-                                            despite a critical risk score of <span className="font-bold">{scam.risk_score}/100</span>. {rules.join(', ')} were detected.
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
             </Card>
+
+            {/* CHANGE 3: Reviewed but Missed Section */}
+            {missedScams.length > 0 && (
+                <div className="mt-6 space-y-3 pb-8">
+                    <div className="flex items-center gap-2 text-orange-500">
+                        <ShieldAlert className="w-5 h-5" />
+                        <h2 className="text-sm font-black uppercase tracking-widest">⚠ REVIEWED BUT MISSED (HIGH RISK OVERRIDES)</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {missedScams.map(scam => (
+                            <Card key={scam.id} className="p-4 bg-orange-500/5 border-orange-500/30 flex flex-col gap-2 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
+                                <div className="flex justify-between items-start">
+                                    <Badge className="bg-orange-500 text-white font-mono text-[10px]">SCAM OVERRIDE</Badge>
+                                    <span className="font-mono text-[10px] text-orange-500/60">{new Date(scam.recorded_at).toLocaleTimeString()}</span>
+                                </div>
+                                <div className="font-mono text-[10px] font-bold text-foreground truncate">
+                                    {scam.tx_id}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-sans font-bold">Risk Score</span>
+                                    <span className="text-sm font-black text-orange-500 font-mono">{scam.risk_score}</span>
+                                </div>
+                                <p className="text-[10px] leading-tight italic text-orange-200/70 border-l border-orange-500/30 pl-2">
+                                    "{scam.analyst_notes}"
+                                </p>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

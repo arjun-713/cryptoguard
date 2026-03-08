@@ -81,6 +81,16 @@ async def log_action(tx_id: str, action: ActionType, analyst_notes: str = "", tx
                 from_address, to_address, eth_value, risk_score, risk_tier,
                 json.dumps(triggered_rules), ai_explanation, tx_timestamp
             ))
+            
+            # CHANGE 3: Handle missed scams for high-risk manual authorizations
+            if action == ActionType.AUTHORIZE and risk_score >= 70:
+                notes = f"Broker authorized despite CRITICAL risk score: {analyst_notes}"
+                await db.execute("""
+                    INSERT INTO missed_scams (
+                        tx_id, risk_score, triggered_rules, analyst_notes
+                    ) VALUES (?, ?, ?, ?)
+                """, (tx_id, risk_score, json.dumps(triggered_rules), notes))
+            
             await db.commit()
     except Exception as e:
         print(f"❌ Failed to insert action to db: {e}")
@@ -89,7 +99,7 @@ async def log_action(tx_id: str, action: ActionType, analyst_notes: str = "", tx
     emoji = {
         "hold": "🛑", 
         "monitor": "👁️", 
-        "escalate": "🚨",
+        "authorize": "✅",
         "AUTO_HOLD": "🤖🛑",
         "AUTO_MONITOR": "🤖👁️"
     }.get(action.value, "📋")
@@ -137,12 +147,12 @@ async def monitor_transaction(body: dict):
 
 
 # ---------------------------------------------------------------------------
-# POST /api/actions/authorize — manually authorize a transaction
+# POST /api/actions/escalate — escalate a transaction
 # ---------------------------------------------------------------------------
 
 @router.post("/actions/authorize")
 async def authorize_transaction(body: dict):
-    """Authorize a transaction (replace escalate). Records missed scams if risk >= 70."""
+    """Manually authorize a transaction despite risk markers."""
     tx_id = body.get("tx_id") or body.get("tx_hash", "")
     notes = body.get("analyst_notes") or body.get("notes", "")
 
@@ -150,43 +160,7 @@ async def authorize_transaction(body: dict):
         return {"detail": "tx_id is required"}
 
     record = await log_action(tx_id, ActionType.AUTHORIZE, notes, body)
-    
-    # Check if this qualifies as a missed scam
-    risk_score = body.get("risk_score", 0)
-    if float(risk_score) >= 70:
-        triggered_rules = json.dumps(body.get("triggered_rules", []))
-        try:
-            async with aiosqlite.connect(DB_PATH) as db:
-                await db.execute("""
-                    INSERT INTO missed_scams (
-                        tx_id, risk_score, triggered_rules, authorized_at, authorized_by
-                    ) VALUES (?, ?, ?, ?, ?)
-                """, (tx_id, risk_score, triggered_rules, datetime.now(timezone.utc).isoformat(), "analyst_01"))
-                await db.commit()
-        except Exception as e:
-            print(f"❌ Failed to insert into missed_scams: {e}")
-
     return {"status": "authorized", **record}
-
-# ---------------------------------------------------------------------------
-# GET /api/missed-scams — missed scams
-# ---------------------------------------------------------------------------
-
-@router.get("/missed-scams")
-async def get_missed_scams():
-    """Return all transactions that were authorized despite critical risk."""
-    scams = []
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM missed_scams ORDER BY authorized_at DESC") as cursor:
-                rows = await cursor.fetchall()
-                for row in rows:
-                    scams.append(dict(row))
-        return scams
-    except Exception as e:
-        print(f"❌ Failed to fetch missed scams: {e}")
-        return []
 
 
 # ---------------------------------------------------------------------------
@@ -284,3 +258,35 @@ async def confirm_transaction(body: dict):
     from db.stats import increment_stat
     await increment_stat("confirmed_scams")
     return {"status": "confirmed"}
+
+# ---------------------------------------------------------------------------
+# GET /api/missed_scams — Pull from missed_scams table (CHANGE 3)
+# ---------------------------------------------------------------------------
+
+@router.get("/missed_scams")
+async def get_missed_scams():
+    """Return all transactions that were manually authorized despite high risk."""
+    missed = []
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM missed_scams ORDER BY recorded_at DESC") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    rules_str = row["triggered_rules"]
+                    try:
+                        rules = json.loads(rules_str) if rules_str else []
+                    except:
+                        rules = []
+                    missed.append({
+                        "id": row["id"],
+                        "tx_id": row["tx_id"],
+                        "risk_score": row["risk_score"],
+                        "triggered_rules": rules,
+                        "analyst_notes": row["analyst_notes"],
+                        "recorded_at": row["recorded_at"]
+                    })
+        return missed
+    except Exception as e:
+        print(f"❌ Failed to fetch missed scams from DB: {e}")
+        return []

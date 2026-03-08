@@ -24,6 +24,9 @@ import blockchain.wallet_store as wallet_store
 # Connected WebSocket clients
 _ws_clients: set[WebSocket] = set()
 
+# CHANGE 4: Global demo mode state
+demo_mode_active: bool = False
+
 # Loaded simulation data
 _sim_data: dict[str, Any] | None = None
 
@@ -213,17 +216,6 @@ async def run_simulation_loop() -> None:
             async with _demo_lock:
                 # Enrich and broadcast
                 enriched = _enrich_transaction(raw_tx)
-                
-                # Feature 1 Filter
-                from db.broker_registry import get_registered_wallets
-                registered_wallets = await get_registered_wallets()
-                if registered_wallets:
-                    registered_addresses = {w["wallet_address"] for w in registered_wallets}
-                    from_addr = enriched.get("from_address", "")
-                    to_addr = enriched.get("to_address", "")
-                    if from_addr not in registered_addresses and to_addr not in registered_addresses:
-                        continue
-                        
                 await wallet_store.record_transaction(enriched)
                 _tx_counter += 1
 

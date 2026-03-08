@@ -48,7 +48,7 @@ export interface CaseLogEntry {
 }
 
 export type RiskTier = 'low' | 'medium' | 'critical';
-export type ActionType = 'hold' | 'monitor' | 'escalate';
+export type ActionType = 'hold' | 'monitor' | 'authorize';
 
 export function getRiskTier(score: number): RiskTier {
     if (score < 40) return 'low';

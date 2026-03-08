@@ -36,7 +36,6 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect, 
                             const color = getRiskColor(tier);
                             const isSelected = tx.id === selectedTxId;
                             const fromLabel = walletLabels[tx.from];
-                            const isBrokerDemo = tx.scenario === 'broker_demo_withdraw';
 
                             return (
                                 <button
@@ -45,8 +44,8 @@ export default function TransactionFeed({ transactions, selectedTxId, onSelect, 
                                     className={`w-full text-left px-5 py-3.5 transition-colors duration-150 ${isSelected
                                         ? 'bg-accent/60 border-l-2'
                                         : 'border-l-2 border-transparent hover:bg-accent/30'
-                                        } ${i === 0 ? 'animate-slide-in' : ''} ${isBrokerDemo ? 'animate-pulse ring-2 ring-red-500 bg-red-500/10' : ''}`}
-                                    style={{ borderLeftColor: isBrokerDemo ? '#ef4444' : (isSelected ? color : 'transparent') }}
+                                        } ${i === 0 ? 'animate-slide-in' : ''}`}
+                                    style={{ borderLeftColor: isSelected ? color : 'transparent' }}
                                 >
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="flex-1 min-w-0">
