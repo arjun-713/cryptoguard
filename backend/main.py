@@ -10,6 +10,9 @@ import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from config import settings
 from db.models import HealthResponse
@@ -258,3 +261,20 @@ async def stop_demo_mode():
     await simulator.stop_simulation()
     await start_live_stream()
     return {"demo_mode": False}
+
+# ---------------------------------------------------------------------------
+# Serve built frontend in production / Docker
+# ---------------------------------------------------------------------------
+
+frontend_dist = os.path.join(os.path.dirname(__file__), "../frontend/dist")
+if os.path.exists(frontend_dist):
+    app.mount(
+        "/assets",
+        StaticFiles(directory=f"{frontend_dist}/assets"),
+        name="assets",
+    )
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        index = os.path.join(frontend_dist, "index.html")
+        return FileResponse(index)

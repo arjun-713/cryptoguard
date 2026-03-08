@@ -54,6 +54,27 @@ Open **http://localhost:5173**
 
 ---
 
+## 🐳 Docker (Recommended for team)
+
+No Python or Node setup needed. Prerequisites: Docker + Docker Compose installed.
+
+```bash
+cp .env.example .env
+# Add your API keys to .env
+
+docker compose up --build
+```
+
+Open **http://localhost:8000**
+
+To stop:
+
+```bash
+docker compose down
+```
+
+---
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill in:
