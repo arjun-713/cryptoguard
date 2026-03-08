@@ -67,7 +67,20 @@ async def init_db():
             )
         """)
         
+        # Schema migrations for missed_scams (handle older table versions)
+        existing_cols = set()
+        async with db.execute("PRAGMA table_info(missed_scams)") as cursor:
+            rows = await cursor.fetchall()
+            for row in rows:
+                existing_cols.add(row[1])
+        
+        if "analyst_notes" not in existing_cols:
+            await db.execute('ALTER TABLE missed_scams ADD COLUMN analyst_notes TEXT')
+        if "recorded_at" not in existing_cols:
+            await db.execute('ALTER TABLE missed_scams ADD COLUMN recorded_at TIMESTAMP')
+        
         await db.commit()
+
     
     # Initialize and load stats (Fix 5)
     from db.stats import init_stats_db, load_stats

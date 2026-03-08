@@ -87,9 +87,9 @@ async def log_action(tx_id: str, action: ActionType, analyst_notes: str = "", tx
                 notes = f"Broker authorized despite CRITICAL risk score: {analyst_notes}"
                 await db.execute("""
                     INSERT INTO missed_scams (
-                        tx_id, risk_score, triggered_rules, analyst_notes
-                    ) VALUES (?, ?, ?, ?)
-                """, (tx_id, risk_score, json.dumps(triggered_rules), notes))
+                        tx_id, risk_score, triggered_rules, analyst_notes, recorded_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                """, (tx_id, risk_score, json.dumps(triggered_rules), notes, now.isoformat()))
             
             await db.commit()
     except Exception as e:
@@ -166,6 +166,12 @@ async def authorize_transaction(body: dict):
 # ---------------------------------------------------------------------------
 # GET /api/actions — all case actions
 # ---------------------------------------------------------------------------
+
+@router.get("/actions/recent")
+async def get_recent_actions():
+    """Return the most recent 20 case actions (in-memory, fast)."""
+    return list(reversed(_action_log))[:20]
+
 
 @router.get("/actions")
 async def get_actions():

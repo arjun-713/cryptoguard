@@ -257,7 +257,41 @@ async def broker_withdraw(body: dict):
         "status": status,
         "score": score,
         "tier": tier,
+        "risk_score": score,
+        "risk_tier": tier,
         "reason": f"Transaction score is {score}/100 based on {len(triggered)} suspicious signals.",
         "action_id": action_id,
         "triggered_rules": triggered
     }
+
+
+# ---------------------------------------------------------------------------
+# Broker Registry — Register and List Customer Wallets
+# ---------------------------------------------------------------------------
+
+_registered_wallets: list[dict] = []
+
+@router.post("/broker/register-wallet")
+async def register_wallet(body: dict):
+    """Register a customer wallet with the broker."""
+    address = body.get("address", "")
+    name = body.get("name", "")
+    account_type = body.get("account_type", "customer")
+
+    if not address:
+        return {"error": "address is required"}
+
+    record = {
+        "wallet_address": address.lower(),
+        "name": name,
+        "account_type": account_type,
+        "registered_at": datetime.now(timezone.utc).isoformat()
+    }
+    _registered_wallets.append(record)
+    return {"status": "registered", **record}
+
+
+@router.get("/broker/customers")
+async def get_broker_customers():
+    """Return all registered customer wallets."""
+    return _registered_wallets
