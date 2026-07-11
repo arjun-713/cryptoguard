@@ -13,8 +13,8 @@
   --card-foreground: oklch(0.94 0.012 92);
   --popover: oklch(0.16 0.014 105);
   --popover-foreground: oklch(0.94 0.012 92);
-  --primary: oklch(0.72 0.15 158);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: #2A2D34;
+  --primary-foreground: #F5F6F7;
   --secondary: oklch(0.23 0.018 112);
   --secondary-foreground: oklch(0.88 0.012 92);
   --muted: oklch(0.21 0.014 105);
@@ -24,12 +24,12 @@
   --destructive: oklch(0.64 0.21 26);
   --border: oklch(0.28 0.018 108);
   --input: oklch(0.24 0.018 108);
-  --ring: oklch(0.72 0.15 158);
-  --chart-1: oklch(0.72 0.15 158);
+  --ring: #3A3D45;
+  --chart-1: #2A2D34;
   --chart-2: oklch(0.76 0.16 82);
   --chart-3: oklch(0.68 0.18 205);
   --chart-4: oklch(0.65 0.21 26);
-  --chart-5: oklch(0.76 0.13 42);
+  --chart-5: #202329;
   --radius: 0.42rem;
 
   /* CryptoGuard risk colors */
@@ -96,8 +96,8 @@
     @apply bg-background text-foreground antialiased;
     overflow: hidden;
     background:
-      radial-gradient(circle at 14% -10%, color-mix(in oklch, var(--primary) 13%, transparent), transparent 28rem),
-      radial-gradient(circle at 95% 8%, color-mix(in oklch, var(--chart-5) 10%, transparent), transparent 24rem),
+      radial-gradient(circle at 14% -10%, color-mix(in srgb, var(--primary) 24%, transparent), transparent 28rem),
+      radial-gradient(circle at 95% 8%, color-mix(in srgb, var(--chart-5) 32%, transparent), transparent 24rem),
       var(--background);
   }
 
