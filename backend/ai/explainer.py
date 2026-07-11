@@ -11,7 +11,10 @@ from __future__ import annotations
 import os
 from typing import Any, AsyncGenerator
 
-import google.generativeai as genai  # type: ignore
+try:
+    import google.generativeai as genai  # type: ignore
+except ImportError:  # pragma: no cover - optional in slim deploys
+    genai = None
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +128,7 @@ async def generate_explanation(
 
     # ── Priority 2: live Gemini API call with streaming ──
     api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
+    if not api_key or genai is None:
         # No API key → fall back to rule-based explanation
         yield _build_fallback(risk_result)
         return

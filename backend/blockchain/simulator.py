@@ -147,7 +147,7 @@ async def fire_demo_sequence() -> None:
             # FEATURE 1: AUTO-HOLD / MONITOR FOR SIMULATION
             from risk.scorer import _determine_tier
             from config import settings
-            from api.actions import log_action
+            from backend.api.actions import log_action
             from db.models import ActionType
             
             score = enriched.get("risk_score", 0)
@@ -221,7 +221,7 @@ async def run_simulation_loop() -> None:
 
                 from risk.scorer import _determine_tier
                 from config import settings
-                from api.actions import log_action
+                from backend.api.actions import log_action
                 from db.models import ActionType
                 
                 score = enriched.get("risk_score", 0)

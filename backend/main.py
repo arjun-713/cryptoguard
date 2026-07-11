@@ -6,20 +6,29 @@ Start with:
 """
 
 import asyncio
+import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
+
+BACKEND_DIR = os.path.dirname(__file__)
+ROOT_DIR = os.path.dirname(BACKEND_DIR)
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 from config import settings
 from db.models import HealthResponse
-from api.transactions import router as transactions_router
-from api.actions import router as actions_router
-from api.demo import router as demo_router
+from backend.api.transactions import router as transactions_router
+from backend.api.actions import router as actions_router
 from blockchain import simulator
+
+IS_VERCEL = bool(os.getenv("VERCEL"))
 
 
 # ---------------------------------------------------------------------------
@@ -31,7 +40,7 @@ async def score_and_broadcast(tx: dict):
     from ai.explainer import generate_explanation
     from blockchain import wallet_store
     from db.suspicious_addresses import record_suspicious_address, is_known_suspicious
-    from api.actions import log_action
+    from backend.api.actions import log_action
     from blockchain.enricher import enrich_transaction
     from db.models import ActionType
 
@@ -107,34 +116,35 @@ async def lifespan(app: FastAPI):
     from db.database import init_db
     await init_db()
     
-    # Load historical wallet data (Fix 2)
-    from blockchain.wallet_store import load_wallet_history_from_db, run_nightly_cleanup
-    await load_wallet_history_from_db()
-    asyncio.create_task(run_nightly_cleanup())
-    
-    # OFAC List Refresh (Fix 4)
-    from blockchain.constants import refresh_ofac_list, periodic_ofac_refresh
-    await refresh_ofac_list()
-    asyncio.create_task(periodic_ofac_refresh(86400))
+    if not IS_VERCEL:
+        from blockchain.wallet_store import load_wallet_history_from_db, run_nightly_cleanup
+        await load_wallet_history_from_db()
+        asyncio.create_task(run_nightly_cleanup())
+
+        from blockchain.constants import refresh_ofac_list, periodic_ofac_refresh
+        await refresh_ofac_list()
+        asyncio.create_task(periodic_ofac_refresh(86400))
     
     print(f"   Simulation mode: {settings.SIMULATION_MODE}")
     print(f"   CORS origins:    {settings.CORS_ORIGINS}")
     print(f"   Database:        {settings.DATABASE_URL}")
 
-    # CHANGE 4: Initialize based on env, but allow dynamic toggling
-    simulator.demo_mode_active = settings.SIMULATION_MODE
-    
-    if simulator.demo_mode_active:
-        print("🎬 Starting in SIMULATION MODE")
-        await simulator.start_simulation()
+    simulator.demo_mode_active = True if IS_VERCEL else settings.SIMULATION_MODE
+
+    if not IS_VERCEL:
+        if simulator.demo_mode_active:
+            print("🎬 Starting in SIMULATION MODE")
+            await simulator.start_simulation()
+        else:
+            print("🌐 Starting in LIVE MODE")
+            await start_live_stream()
     else:
-        print("🌐 Starting in LIVE MODE")
-        await start_live_stream()
+        print("☁️  Serverless mode detected - background stream disabled")
 
     yield
 
-    # Shut down simulation
-    await simulator.stop_simulation()
+    if not IS_VERCEL:
+        await simulator.stop_simulation()
     print("🛑 CryptoGuard backend shutting down...")
 
 
@@ -250,6 +260,9 @@ async def websocket_stream(ws: WebSocket):
 
 @app.post("/api/demo/start", tags=["demo"])
 async def start_demo_mode():
+    if IS_VERCEL:
+        simulator.demo_mode_active = True
+        return {"demo_mode": True, "mode": "serverless"}
     simulator.demo_mode_active = True
     await stop_live_stream()
     await simulator.start_simulation()
@@ -257,6 +270,9 @@ async def start_demo_mode():
 
 @app.post("/api/demo/stop", tags=["demo"])
 async def stop_demo_mode():
+    if IS_VERCEL:
+        simulator.demo_mode_active = False
+        return {"demo_mode": False, "mode": "serverless"}
     simulator.demo_mode_active = False
     await simulator.stop_simulation()
     await start_live_stream()

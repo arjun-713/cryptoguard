@@ -15,10 +15,12 @@ load_dotenv(dotenv_path=env_path)
 class Settings:
     """Typed configuration object for the entire backend."""
 
+    _default_sqlite_path: str = "/tmp/cryptoguard.db" if os.getenv("VERCEL") else "./cryptoguard.db"
+
     ALCHEMY_WSS_URL: str = os.getenv("ALCHEMY_WSS_URL", "")
     ALCHEMY_HTTP_URL: str = os.getenv("ALCHEMY_HTTP_URL", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./cryptoguard.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{_default_sqlite_path}")
     CORS_ORIGINS: list[str] = [
         origin.strip()
         for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")

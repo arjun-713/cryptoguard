@@ -5,7 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ShieldAlert, ShieldCheck, Eye, AlertTriangle, Copy } from 'lucide-react';
+import {
+    AlertTriangle,
+    Ban,
+    Copy,
+    Eye,
+    Gem,
+    Link2,
+    Radar,
+    Route,
+    ShieldAlert,
+    ShieldCheck,
+    Sparkles,
+    Zap,
+} from 'lucide-react';
 import HashLink from '@/components/HashLink';
 
 interface RiskCardProps {
@@ -13,14 +26,14 @@ interface RiskCardProps {
     isAuthorized?: boolean;
 }
 
-const ruleIcons: Record<string, string> = {
-    BLACKLIST_HIT: '🚫',
-    TORNADO_PROXIMITY: '🌀',
-    PEEL_CHAIN: '🔗',
-    HIGH_VELOCITY: '⚡',
-    LARGE_VALUE: '💎',
-    NEW_WALLET: '🆕',
-    RUG_PULL_PATTERN: '🎭',
+const ruleIcons = {
+    BLACKLIST_HIT: Ban,
+    TORNADO_PROXIMITY: Radar,
+    PEEL_CHAIN: Link2,
+    HIGH_VELOCITY: Zap,
+    LARGE_VALUE: Gem,
+    NEW_WALLET: Sparkles,
+    RUG_PULL_PATTERN: Route,
 };
 
 export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardProps) {
@@ -43,21 +56,20 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
     return (
         <div className="flex flex-col h-full animate-fade-in">
             {/* Header row: title + score inline */}
-            <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b">
-                <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b">
+                <h2 className="text-xs font-semibold uppercase text-muted-foreground">
                     Risk Assessment
                 </h2>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[10px] gap-1.5 hover:bg-cyan-500/10 hover:text-cyan-500 transition-all border border-transparent hover:border-cyan-500/30"
+                        className="h-8 gap-1.5 rounded-sm px-2 text-[10px]"
                         onClick={() => {
                             navigator.clipboard.writeText(transaction.hash);
-                            // We could add a local toast here too, but App level might be better
                         }}
                     >
-                        <Copy className="w-3 h-3" /> COPY HASH
+                        <Copy className="w-3 h-3" /> Copy
                     </Button>
                     <HashLink hash={transaction.hash} />
                 </div>
@@ -65,21 +77,20 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
 
             {/* CHANGE 3: Warn if authorized despite high risk */}
             {isAuthorized && transaction.risk_score >= 70 && (
-                <div className="mx-5 mt-2 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2.5 flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-300">
-                    <div className="p-1.5 bg-orange-500 rounded-md shrink-0">
+                <div className="mx-5 mt-3 bg-orange-500/10 border border-orange-500/30 rounded-md p-3 flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-300">
+                    <div className="p-1.5 bg-orange-500 rounded-sm shrink-0">
                         <AlertTriangle className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-0.5">⚠ POTENTIAL SCAM — Unauthorized Exception</p>
+                        <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-0.5">Potential scam exception</p>
                         <p className="text-[9px] text-orange-200/70 leading-tight">Broker manually authorized this despite CRITICAL risk score.</p>
                     </div>
                 </div>
             )}
 
-            {/* Score + tier — compact horizontal row */}
-            <div className="shrink-0 flex items-center gap-4 px-5 py-3 border-b bg-muted/20">
+            <div className="shrink-0 flex items-center gap-4 px-5 py-4 border-b bg-muted/20">
                 <div
-                    className="w-14 h-14 rounded-lg flex items-center justify-center border shrink-0"
+                    className="w-16 h-16 rounded-md flex items-center justify-center border shrink-0"
                     style={{ borderColor: `${color}30`, background: `${color}08` }}
                 >
                     <span className="text-2xl font-bold font-mono" style={{ color }}>
@@ -106,7 +117,7 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
                             </Badge>
                         )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{tier.toUpperCase()} RISK</span>
+                    <span className="text-xs text-muted-foreground">{tier.toUpperCase()} RISK PROFILE</span>
                 </div>
             </div>
 
@@ -120,16 +131,19 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
                                 Triggered Rules ({transaction.triggered_rules.length})
                             </p>
                             <div className="space-y-1">
-                                {transaction.triggered_rules.map(rule => (
-                                    <div
-                                        key={rule}
-                                        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md bg-muted/50 text-sm"
-                                    >
-                                        <span>{ruleIcons[rule] || '⚠'}</span>
-                                        <span className="text-foreground flex-1 text-[13px]">{formatRuleName(rule)}</span>
-                                        <AlertTriangle className="w-3 h-3 text-muted-foreground shrink-0" />
-                                    </div>
-                                ))}
+                                {transaction.triggered_rules.map(rule => {
+                                    const RuleIcon = ruleIcons[rule as keyof typeof ruleIcons] || AlertTriangle;
+                                    return (
+                                        <div
+                                            key={rule}
+                                            className="flex items-center gap-2.5 px-3 py-2 rounded-md border bg-muted/35 text-sm"
+                                        >
+                                            <RuleIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-foreground flex-1 text-[13px]">{formatRuleName(rule)}</span>
+                                            <AlertTriangle className="w-3 h-3 text-muted-foreground shrink-0" />
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -138,8 +152,8 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
                     {transaction.hop_chain && transaction.hop_chain.length > 1 && (
                         <div>
                             <Separator className="mb-3" />
-                            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-                                Fund Flow · {transaction.hop_chain.length} hops
+                            <p className="text-[11px] text-muted-foreground uppercase mb-2">
+                                Fund flow - {transaction.hop_chain.length} hops
                             </p>
                             <div className="flex items-center gap-1 flex-wrap">
                                 {transaction.hop_chain.map((addr, i) => (
@@ -148,7 +162,7 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
                                             {addr.slice(0, 6)}
                                         </span>
                                         {i < transaction.hop_chain!.length - 1 && (
-                                            <span className="text-muted-foreground text-[10px]">→</span>
+                                            <span className="text-muted-foreground text-[10px]">/</span>
                                         )}
                                     </div>
                                 ))}
@@ -158,7 +172,7 @@ export default memo(function RiskCard({ transaction, isAuthorized }: RiskCardPro
 
                     {transaction.triggered_rules.length === 0 && (
                         <p className="text-sm text-muted-foreground py-2">
-                            No rules triggered — transaction appears normal.
+                            No rules triggered. Transaction appears normal.
                         </p>
                     )}
                 </div>

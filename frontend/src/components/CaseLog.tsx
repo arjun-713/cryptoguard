@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import type { CaseLogEntry } from '@/data/types';
 import { truncateAddress, timeAgo } from '@/data/types';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy, ShieldAlert } from 'lucide-react';
+import { ClipboardList, Bot, User, Clock, CheckCircle2, Search, Copy } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getStoredActions, onSessionUpdate } from '@/lib/sessionStore';
 
 interface CaseLogProps {
     onViewCase: (c: CaseLogEntry, list: CaseLogEntry[]) => void;
@@ -17,27 +17,15 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'ALL' | 'HOLD' | 'MONITOR' | 'AUTHORIZE'>('ALL');
     const [copiedId, setCopiedId] = useState<string | null>(null);
-    const [missedScams, setMissedScams] = useState<any[]>([]);
 
-    const fetchActions = async () => {
-        try {
-            const res = await fetch('http://localhost:8000/api/actions');
-            const data = await res.json();
-            setActions(data);
-
-            const missedRes = await fetch('http://localhost:8000/api/missed_scams');
-            if (missedRes.ok) setMissedScams(await missedRes.json());
-        } catch (err) {
-            console.error('Failed to fetch action log:', err);
-        } finally {
-            setLoading(false);
-        }
+    const fetchActions = () => {
+        setActions(getStoredActions());
+        setLoading(false);
     };
 
     useEffect(() => {
         fetchActions();
-        const interval = setInterval(fetchActions, 10000);
-        return () => clearInterval(interval);
+        return onSessionUpdate(fetchActions);
     }, []);
 
     const handleCopy = (e: React.MouseEvent, text: string) => {
@@ -64,150 +52,130 @@ export default function CaseLog({ onViewCase }: CaseLogProps) {
     });
 
     return (
-        <div className="flex flex-col bg-background p-4 gap-4 animate-fade-in overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
-            <div className="flex items-center justify-between shrink-0">
+        <div className="flex h-full flex-col gap-3 animate-fade-in">
+            <div className="flex shrink-0 flex-col gap-3 rounded-md border bg-card/70 p-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
-                    <ClipboardList className="w-8 h-8 text-primary" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-background">
+                        <ClipboardList className="h-5 w-5 text-primary" />
+                    </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight">Case Audit Log</h1>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
-                            {actions.length} Interception Events Logged
+                        <h1 className="text-lg font-semibold tracking-tight">Case Audit Log</h1>
+                        <p className="text-xs text-muted-foreground font-mono">
+                            {actions.length} interception events logged
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                        <div className="flex bg-muted/50 rounded-md p-1 pl-8 items-center gap-1">
-                            {['ALL', 'HOLD', 'MONITOR', 'AUTHORIZE'].map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => setFilter(f as any)}
-                                    className={`px-3 py-1 rounded text-xs font-bold tracking-wider transition-colors ${filter === f
-                                        ? 'bg-background text-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                                        }`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+
+                <div className="flex items-center gap-2 rounded-md border bg-background p-1">
+                    <Search className="ml-2 h-4 w-4 text-muted-foreground" />
+                    {['ALL', 'HOLD', 'MONITOR', 'AUTHORIZE'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f as any)}
+                            className={`rounded-sm px-3 py-1.5 text-xs font-semibold transition-colors ${filter === f
+                                ? 'bg-secondary text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                                }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <Card className="flex-1 min-h-0 flex flex-col border-primary/10 bg-card/50 overflow-hidden">
-                <div className="grid grid-cols-12 px-6 py-3 bg-muted/30 border-b text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    <div className="col-span-1">ID</div>
-                    <div className="col-span-2">Source</div>
-                    <div className="col-span-2">Transaction ID</div>
-                    <div className="col-span-2 text-center">Action</div>
-                    <div className="col-span-1 text-center">Risk</div>
-                    <div className="col-span-2">Analyst Notes</div>
-                    <div className="col-span-2 text-right">Timestamp</div>
-                </div>
+            <Card className="flex min-h-0 flex-1 py-0">
+                <CardHeader className="border-b py-4">
+                    <CardTitle className="text-sm">Intervention Ledger</CardTitle>
+                    <CardDescription>Manual and automatic decisions from this browser session.</CardDescription>
+                </CardHeader>
+                <CardContent className="min-h-0 flex-1 p-0">
+                    <ScrollArea className="h-full">
+                        {loading && actions.length === 0 ? (
+                            <div className="flex items-center justify-center p-20">
+                                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                            </div>
+                        ) : filteredActions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
+                                <CheckCircle2 className="mb-4 h-12 w-12 opacity-20" />
+                                <p>No actions match this filter.</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-border">
+                                {filteredActions.map((act) => {
+                                    const isAuto = act.action.startsWith('AUTO_');
+                                    const displayAction = act.action.replace('AUTO_', '').toUpperCase();
+                                    const score = act.tx_details?.risk_score ?? 0;
 
-                <ScrollArea className="flex-1">
-                    {loading && actions.length === 0 ? (
-                        <div className="flex items-center justify-center p-20">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        </div>
-                    ) : filteredActions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-                            <CheckCircle2 className="w-12 h-12 mb-4 opacity-20" />
-                            <p>No actions match this filter.</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-border">
-                            {filteredActions.map((act) => {
-                                const isAuto = act.action.startsWith('AUTO_');
-                                const displayAction = act.action.replace('AUTO_', '').toUpperCase();
-                                const score = act.tx_details?.risk_score ?? 0;
-
-                                return (
-                                    <div
-                                        key={`${act.id}-${act.tx_id}`}
-                                        onClick={() => onViewCase(act, filteredActions)}
-                                        className="grid grid-cols-12 px-6 py-4 items-center gap-2 hover:bg-accent/20 cursor-pointer transition-colors"
-                                    >
-                                        <div className="col-span-1 font-mono text-[10px] text-muted-foreground">
-                                            #{act.id}
-                                        </div>
-                                        <div className="col-span-2 flex items-center gap-2">
-                                            {isAuto ? (
-                                                <Badge variant="outline" className="text-rose-400 border-rose-400/30 gap-1.5 h-6">
-                                                    <Bot className="w-3 h-3" /> Automatic
+                                    return (
+                                        <button
+                                            key={`${act.id}-${act.tx_id}`}
+                                            onClick={() => onViewCase(act, filteredActions)}
+                                            className="grid w-full gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/15 lg:grid-cols-12 lg:items-center"
+                                        >
+                                            <div className="font-mono text-[10px] text-muted-foreground lg:col-span-1">
+                                                #{act.id}
+                                            </div>
+                                            <div className="flex items-center gap-2 lg:col-span-2">
+                                                {isAuto ? (
+                                                    <Badge variant="outline" className="h-6 gap-1.5 rounded-sm border-rose-400/30 text-rose-300">
+                                                        <Bot className="h-3 w-3" /> Automatic
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="h-6 gap-1.5 rounded-sm border-primary/30 text-primary">
+                                                        <User className="h-3 w-3" /> Manual
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 lg:col-span-2">
+                                                <span
+                                                    className="font-mono text-xs text-foreground transition-colors hover:text-primary"
+                                                    onClick={(e) => handleCopy(e, act.tx_id)}
+                                                >
+                                                    {truncateAddress(act.tx_id)}
+                                                </span>
+                                                <Copy className="h-3 w-3 text-muted-foreground" />
+                                                {copiedId === act.tx_id && <span className="text-[10px] text-primary">Copied</span>}
+                                            </div>
+                                            <div className="lg:col-span-2 lg:text-center">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`h-6 rounded-sm border-transparent px-3 text-[10px] uppercase ${displayAction === 'HOLD' ? 'bg-red-500/20 text-red-300' :
+                                                        displayAction === 'MONITOR' ? 'bg-yellow-500/20 text-yellow-300' :
+                                                            (displayAction === 'ESCALATE' || displayAction === 'AUTHORIZE') ? 'bg-orange-500/20 text-orange-300' :
+                                                                'bg-secondary text-secondary-foreground'
+                                                        }`}
+                                                >
+                                                    {displayAction}
                                                 </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-emerald-400 border-emerald-400/30 gap-1.5 h-6">
-                                                    <User className="w-3 h-3" /> Manual
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="col-span-2 flex items-center gap-1 group">
-                                            <span className="font-mono text-xs text-foreground shrink-0 cursor-copy hover:text-cyan-400 transition-colors"
-                                                onClick={(e) => handleCopy(e, act.tx_id)}>
-                                                {truncateAddress(act.tx_id)}
-                                            </span>
-                                            {copiedId === act.tx_id && <span className="text-[10px] text-cyan-400">Copied!</span>}
-                                        </div>
-                                        <div className="col-span-2 text-center">
-                                            <Badge
-                                                variant="outline"
-                                                className={`uppercase tracking-widest text-[10px] h-6 px-3 border-transparent ${displayAction === 'HOLD' ? 'bg-red-500/20 text-red-400' :
-                                                    displayAction === 'MONITOR' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        (displayAction === 'ESCALATE' || displayAction === 'AUTHORIZE') ? 'bg-orange-500/20 text-orange-400' :
-                                                            'bg-secondary text-secondary-foreground'
-                                                    }`}
-                                            >
-                                                {displayAction}
-                                            </Badge>
-                                        </div>
-                                        <div className="col-span-1 flex items-center justify-center gap-2">
-                                            <span className="font-bold text-[10px] w-5 text-right font-mono">{score}</span>
-                                            <TooltipProvider delayDuration={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
-                                                            <div className={`h-full ${getScoreColor(score)}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>Score: {score}/100</TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                        <div className="col-span-2 text-xs text-muted-foreground truncate pr-2">
-                                            {act.analyst_notes ? `"${act.analyst_notes.length > 40 ? act.analyst_notes.substring(0, 40) + '...' : act.analyst_notes}"` : <span className="italic opacity-50">No notes</span>}
-                                        </div>
-                                        <div className="col-span-2 text-right flex items-center justify-end">
-                                            <TooltipProvider delayDuration={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2 cursor-help">
-                                                            <Clock className="w-3 h-3" />
-                                                            {timeAgo(new Date(act.actioned_at).getTime())}
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="left">
-                                                        {new Date(act.actioned_at).toLocaleString()}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </ScrollArea>
-
-                <div className="shrink-0 p-4 bg-muted/10 border-t">
-                    <p className="text-[10px] text-muted-foreground text-center uppercase tracking-[0.2em]">
-                        Immutable Audit Trail · Compliant with Financial Integrity Standards
-                    </p>
-                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 lg:col-span-1 lg:justify-center">
+                                                <span className="w-6 text-right font-mono text-[10px] font-bold">{score}</span>
+                                                <TooltipProvider delayDuration={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className="h-1.5 w-10 overflow-hidden rounded-full bg-muted">
+                                                                <div className={`h-full ${getScoreColor(score)}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Score: {score}/100</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                            <div className="truncate text-xs text-muted-foreground lg:col-span-2">
+                                                {act.analyst_notes ? `"${act.analyst_notes.length > 44 ? act.analyst_notes.substring(0, 44) + '...' : act.analyst_notes}"` : <span className="italic opacity-50">No notes</span>}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground lg:col-span-2 lg:justify-end">
+                                                <Clock className="h-3 w-3" />
+                                                {timeAgo(new Date(act.actioned_at).getTime())}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </ScrollArea>
+                </CardContent>
             </Card>
-
         </div>
     );
 }

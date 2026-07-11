@@ -1,6 +1,6 @@
 import type { Transaction } from './types';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — Vite handles JSON imports natively
+// @ts-ignore - Vite handles JSON imports natively
 import simulationRaw from './simulation-data.json';
 
 const data = simulationRaw as {

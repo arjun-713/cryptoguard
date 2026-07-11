@@ -61,30 +61,30 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
     const handleNext = () => { if (hasNext && onNavigate) onNavigate(caseList[currentIndex + 1]); };
 
     return (
-        <div className="flex flex-col gap-6 max-w-4xl mx-auto p-4 pb-12 animate-fade-in w-full text-foreground relative print:bg-white print:text-black print:p-0">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-10 text-foreground animate-fade-in print:bg-white print:text-black print:p-0">
             {/* Top Navigation */}
-            <div className="flex items-center justify-between print:hidden sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b">
-                <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-md border bg-background/90 px-3 py-2 backdrop-blur print:hidden">
+                <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 rounded-sm">
                     <ArrowLeft className="w-4 h-4" /> Back to Log
                 </Button>
                 <div className="flex items-center gap-2">
                     {(caseList.length > 0 && onNavigate) && (
                         <div className="flex items-center gap-1 mr-4 border-r pr-4 border-border">
-                            <Button variant="ghost" size="sm" onClick={handlePrev} disabled={!hasPrev} className="gap-1 px-2">
+                            <Button variant="ghost" size="sm" onClick={handlePrev} disabled={!hasPrev} className="gap-1 rounded-sm px-2">
                                 <ChevronLeft className="w-4 h-4" /> Prev
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={handleNext} disabled={!hasNext} className="gap-1 px-2">
+                            <Button variant="ghost" size="sm" onClick={handleNext} disabled={!hasNext} className="gap-1 rounded-sm px-2">
                                 Next <ChevronRight className="w-4 h-4" />
                             </Button>
                         </div>
                     )}
-                    <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 rounded-sm">
                         <Printer className="w-4 h-4" /> Print Report
                     </Button>
                 </div>
             </div>
 
-            <Card className="p-8 border-primary/20 bg-card/80 shadow-xl overflow-hidden print:shadow-none print:border-none">
+            <Card className="overflow-hidden border-primary/20 bg-card/85 p-6 shadow-xl print:shadow-none print:border-none md:p-8">
 
                 {/* --- HEADER --- */}
                 <div className="flex flex-col gap-8 md:flex-row justify-between items-start mb-8">
@@ -124,11 +124,11 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
 
                 {/* --- WARNING BANNER (CHANGE 3) --- */}
                 {displayAction === 'AUTHORIZE' && score >= 70 && (
-                    <div className="mb-8 p-4 bg-orange-500/10 border-2 border-orange-500 rounded-lg flex items-center gap-4 animate-pulse">
+                    <div className="mb-8 flex items-center gap-4 rounded-md border-2 border-orange-500 bg-orange-500/10 p-4">
                         <ShieldAlert className="w-8 h-8 text-orange-500 shrink-0" />
                         <div className="space-y-1">
                             <p className="text-orange-500 font-black text-lg leading-tight uppercase tracking-tighter">
-                                ⚠ POTENTIAL SCAM — Unauthorized Exception
+                                Potential scam exception
                             </p>
                             <p className="text-orange-200/80 text-sm font-medium">
                                 This transaction was manually authorized despite a critical risk score of <span className="text-orange-500 font-bold">{score}/100</span>.
@@ -146,7 +146,7 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
                         <ShieldAlert className="w-5 h-5" /> Transaction Fingerprint
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-lg border border-border/50 font-mono text-sm shadow-inner">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-md border border-border/50 font-mono text-sm shadow-inner">
                         <div className="space-y-1 overflow-hidden">
                             <span className="text-[10px] uppercase text-muted-foreground tracking-widest font-sans font-bold">Transaction Hash</span>
                             <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
                         Risk Vector Analysis
                     </h2>
 
-                    <div className="p-6 border rounded-lg space-y-4 bg-background/50">
+                        <div className="p-6 border rounded-md space-y-4 bg-background/50">
                         {rules.length > 0 ? (
                             <div className="flex flex-wrap gap-3">
                                 {rules.map((rule) => {
@@ -254,7 +254,7 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
                             <h2 className="text-lg font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                                 AI Compliance Analysis
                             </h2>
-                            <div className="relative p-6 bg-gradient-to-r from-transparent to-primary/5 border rounded-lg text-sm leading-relaxed italic text-muted-foreground">
+                            <div className="relative p-6 bg-gradient-to-r from-transparent to-primary/5 border rounded-md text-sm leading-relaxed italic text-muted-foreground">
                                 <Sparkles className="absolute -left-2 -top-2 w-6 h-6 p-1 bg-cyan-900 text-cyan-400 rounded-md ring-2 ring-background shadow-md" />
                                 "{tx.ai_explanation}"
                             </div>
@@ -267,7 +267,7 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
                     <h2 className="text-lg font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                         Action Audit Log
                     </h2>
-                    <div className="p-6 bg-muted/40 rounded-lg border">
+                    <div className="p-6 bg-muted/40 rounded-md border">
                         <div className="flex items-start gap-4 mb-4">
                             <div className="p-3 bg-background rounded border mt-1 shrink-0 shadow-sm">
                                 {isAuto ? <Bot className="w-5 h-5 text-rose-400" /> : <User className="w-5 h-5 text-emerald-400" />}
@@ -276,7 +276,7 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
                                 <p className="font-bold text-foreground">
                                     {isAuto ? 'System Risk Engine' : `Analyst: ${caseData.actioned_by}`}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground font-mono mt-1 2-tracking-widest uppercase">
+                                <p className="text-[10px] text-muted-foreground font-mono mt-1 uppercase">
                                     {actionDate.toUTCString()}
                                 </p>
                                 <div className="mt-3 text-sm border-l-2 border-primary/40 pl-3">
@@ -311,9 +311,9 @@ export default function CaseReport({ caseData, caseList = [], onNavigate, onBack
             </Card >
 
             {/* Print Footer */}
-            < div className="hidden print:block text-center mt-8 text-[10px] text-gray-400 font-mono uppercase" >
-                Generated by CryptoGuard Security Engine v1.0.1 • Authorized Financial Record
-            </div >
-        </div >
+            <div className="hidden print:block text-center mt-8 text-[10px] text-gray-400 font-mono uppercase">
+                Generated by CryptoGuard Security Engine v1.0.1 / Authorized Financial Record
+            </div>
+        </div>
     );
 }

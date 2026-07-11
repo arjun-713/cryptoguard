@@ -3,7 +3,7 @@ import type { Transaction } from '@/data/types';
 import { truncateAddress, timeAgo, getRiskTier, getRiskColor, getRiskLabel } from '@/data/types';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell } from 'lucide-react';
+import { Bell, ChevronRight } from 'lucide-react';
 
 interface AlertSidebarProps {
     transactions: Transaction[];
@@ -18,11 +18,11 @@ export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="shrink-0 px-4 py-3.5 border-b">
+            <div className="shrink-0 px-4 py-4 border-b">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Bell className="w-3.5 h-3.5 text-muted-foreground" />
-                        <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                        <Bell className="w-4 h-4 text-primary" />
+                        <h2 className="text-xs font-semibold uppercase text-muted-foreground">
                             Active Alerts
                         </h2>
                     </div>
@@ -41,7 +41,7 @@ export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect
                         <p className="text-xs text-muted-foreground text-center">No active alerts</p>
                     </div>
                 ) : (
-                    <div className="space-y-0.5 p-2">
+                    <div className="space-y-1.5 p-2.5">
                         {flaggedTxs.map((tx, i) => {
                             const tier = getRiskTier(tx.risk_score);
                             const color = getRiskColor(tier);
@@ -52,8 +52,8 @@ export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect
                                 <button
                                     key={`alert-${tx.id}-${i}`}
                                     onClick={() => onSelect(tx)}
-                                    className={`w-full text-left rounded-md px-3 py-2.5 transition-colors duration-150 ${i === 0 ? 'animate-slide-in' : ''
-                                        } ${isSelected ? 'bg-accent/60' : 'hover:bg-accent/30'}`}
+                                    className={`w-full text-left rounded-md border px-3 py-2.5 transition-colors duration-150 ${i === 0 ? 'animate-slide-in' : ''
+                                        } ${isSelected ? 'border-primary/30 bg-primary/10' : 'border-transparent bg-muted/25 hover:border-border hover:bg-accent/30'}`}
                                 >
                                     <div className="flex items-center gap-2.5">
                                         <div
@@ -82,6 +82,7 @@ export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect
                                                 </span>
                                             </div>
                                         </div>
+                                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                                     </div>
                                 </button>
                             );
@@ -90,9 +91,9 @@ export default memo(function AlertSidebar({ transactions, selectedTxId, onSelect
                 )}
             </ScrollArea>
 
-            <div className="px-4 py-2 border-t">
-                <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">
-                    Auto-flagged · Score ≥ 40
+            <div className="px-4 py-2.5 border-t">
+                <p className="text-center text-[10px] uppercase text-muted-foreground">
+                    Auto-flagged at score 40+
                 </p>
             </div>
         </div>

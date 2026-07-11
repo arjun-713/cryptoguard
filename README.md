@@ -1,138 +1,95 @@
-# 🛡️ CryptoGuard
+# CryptoGuard
 
-> Real-time cryptocurrency scam interception —
-> we score Ethereum transactions in the mempool
-> before they confirm on the blockchain.
+CryptoGuard is a crypto-risk demo app that scores suspicious Ethereum-style transactions, explains why they were flagged, and lets a user walk through hold, monitor, and authorize decisions from a single dashboard.
 
----
+## Architecture
 
-## What is this?
+- Frontend: React + Vite in `frontend/`
+- API: FastAPI exposed through `api/index.py` for Vercel
+- Demo state: browser session / `localStorage`
+- Scoring + explanations: Python API endpoints
 
-CryptoGuard sits between a crypto broker and the Ethereum network. When a customer initiates a transaction, CryptoGuard scores it in 40 microseconds across 6 behavioral rules and automatically holds suspicious ones before the broker releases funds.
+The current deployment target is a single Vercel project. The frontend is built as static assets and the backend is exposed as Python serverless functions behind the same origin.
 
-Chainalysis investigates crimes after. We prevent them during the 12-second mempool window.
+## Local Development
 
----
+Prerequisites:
 
-## Where it sits
+- Node.js
+- Python with the backend virtualenv already created at `backend/venv`
 
-```
-Customer initiates transaction
-        ↓
-Broker calls CryptoGuard
-        ↓
-Risk scored in 40 microseconds
-        ↓
-HOLD / MONITOR / AUTHORIZE
-        ↓
-Broker acts before funds leave
-        ↓
-Transaction hits blockchain (or doesn't)
-```
-
----
-
-## Tech Stack
-
-- **Backend** — Python, FastAPI, aiosqlite
-- **Frontend** — React, TypeScript, Tailwind, shadcn/ui
-- **AI** — Google Gemini 2.5 Flash (compliance explanations)
-- **Blockchain** — Alchemy WebSocket (Ethereum mempool)
-
----
-
-## Quick Start
+Start the whole app:
 
 ```bash
-git clone https://github.com/arjun-713/cryptoguard
-cd Cryptoguard
-chmod +x start.sh
-./start.sh
+npm start
 ```
 
-Open **http://localhost:5173**
-
----
-
-## 🐳 Docker (Recommended for team)
-
-No Python or Node setup needed. Prerequisites: Docker + Docker Compose installed.
+Or run each side explicitly:
 
 ```bash
-cp .env.example .env
-# Add your API keys to .env
-
-docker compose up --build
+npm run dev:backend
+npm run dev:frontend
 ```
 
-Open **http://localhost:8000**
+Local URLs:
 
-To stop:
-
-```bash
-docker compose down
-```
-
----
+- Frontend: `http://127.0.0.1:5173`
+- Backend health: `http://127.0.0.1:8000/health`
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.example` to `.env` and set what you need.
 
-```
-ALCHEMY_WSS_URL=wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-GEMINI_API_KEY=your_key_here
-SIMULATION_MODE=false
-HOLD_THRESHOLD=70
-MONITOR_THRESHOLD=40
-```
+Required for the polished demo experience:
 
----
+- `GEMINI_API_KEY`
 
-## Demo Mode
+Optional:
 
-Click **START DEMO** in the dashboard to switch from live Ethereum data to scripted simulation. Click **STOP DEMO** to switch back.
+- `ALCHEMY_WSS_URL`
+- `ALCHEMY_HTTP_URL`
+- `DATABASE_URL`
+- `BROKER_WEBHOOK_URL`
+- `HOLD_THRESHOLD`
+- `MONITOR_THRESHOLD`
 
-Or via API:
+Notes:
+
+- On Vercel, if `DATABASE_URL` is not set, the app falls back to `/tmp/cryptoguard.db`.
+- The Vercel-safe demo flow does not require Alchemy to be configured.
+
+## Vercel Deployment
+
+This repo is configured for a single-project Vercel deploy via [vercel.json](vercel.json).
+
+Build behavior:
+
+- Vercel runs `cd frontend && npm run build`
+- Static frontend output is served from `frontend/dist`
+- API and health routes are rewritten to `api/index.py`
+
+Deploy manually:
 
 ```bash
-curl -X POST http://localhost:8000/api/demo/start
-curl -X POST http://localhost:8000/api/demo/stop
+vercel --prod
 ```
 
----
+## Demo Behavior
 
-## Running Tests
+- The transaction feed is replayed from bundled simulation data in the browser.
+- Case log and suspicious-address tracking are stored per browser session.
+- Manual scam injection still calls the Python API so scoring and explanation generation stay real.
+
+## Verification
+
+Frontend build:
 
 ```bash
-cd backend
-source venv/bin/activate
-pytest tests/ -v
+cd frontend && npm run build
 ```
 
----
+Python entrypoint import:
 
-## Performance
-
-| Metric | Value |
-|--------|-------|
-| Scoring latency | 40.3 μs average |
-| Interception advantage | 297,647x faster than confirmation |
-| Risk rules | 6 simultaneous |
-| OFAC addresses | 85+ live-refreshed |
-
----
-
-## API
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /health | GET | System status |
-| /api/transactions/recent | GET | Latest scored transactions |
-| /api/broker/withdraw | POST | Score a withdrawal request |
-| /api/actions/hold | POST | Hold a transaction |
-| /api/actions/monitor | POST | Monitor a transaction |
-| /api/actions/authorize | POST | Authorize a transaction |
-| /api/demo/start | POST | Enable simulation mode |
-| /api/demo/stop | POST | Enable live mode |
-| /api/suspicious-addresses | GET | Reputation database |
+```bash
+backend/venv/bin/python -c "import api.index; print('ok')"
+```

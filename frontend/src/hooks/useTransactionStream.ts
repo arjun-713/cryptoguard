@@ -1,117 +1,188 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Transaction } from '@/data/types';
-
-// Connect directly to the Python backend
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-const DEMO_START_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/demo/start` : 'http://localhost:8000/api/demo/start';
+import { mockTransactions, playbackConfig } from '@/data/mockData';
+import {
+    appendStoredAction,
+    clearStoredTransactions,
+    getStoredActions,
+    getStoredTransactions,
+    mergeTransactions,
+    onSessionUpdate,
+} from '@/lib/sessionStore';
 
 export function useTransactionStream() {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
-    const [isDemoMode, setIsDemoMode] = useState(false);
+    const [transactions, setTransactions] = useState<Transaction[]>(() => getStoredTransactions());
+    const [isConnected, setIsConnected] = useState(true);
+    const [isDemoMode, setIsDemoModeState] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isPlaying, setIsPlaying] = useState(true);
 
-    const wsRef = useRef<WebSocket | null>(null);
+    const indexRef = useRef(0);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const startDemo = useCallback(async () => {
-        try {
-            setTransactions([]);
-            await fetch(DEMO_START_URL, { method: 'POST' });
-        } catch (e) {
-            console.error("Failed to start demo:", e);
-            setError("Failed to start demo sequence");
+    const syncFromStorage = useCallback(() => {
+        setTransactions(getStoredTransactions());
+    }, []);
+
+    const stopTimers = useCallback(() => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
         }
     }, []);
 
-    const connectWebSocket = useCallback(() => {
-        if (wsRef.current) {
-            wsRef.current.close();
-        }
-
-        try {
-            const ws = new WebSocket(WS_URL);
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                setIsConnected(true);
-                setError(null);
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const payload = JSON.parse(event.data);
-                    if (payload.type === 'new_transaction' && payload.data) {
-                        const txData = payload.data;
-
-                        // Map Python backend format to Frontend Transaction format
-                        const newTx: Transaction = {
-                            id: txData.id || txData.hash,
-                            hash: txData.hash,
-                            from: txData.from_address || txData.from,
-                            to: txData.to_address || txData.to,
-                            eth_value: txData.eth_value,
-                            gas_price_gwei: txData.gas_price_gwei || 0,
-                            nonce: txData.nonce || 0,
-                            risk_score: txData.risk_score,
-                            risk_tier: txData.risk_tier,
-                            action: txData.auto_held ? 'HOLD' : (txData.auto_monitored ? 'MONITOR' : 'PASS'),
-                            triggered_rules: txData.triggered_rules || [],
-                            hop_chain: txData.hop_chain || [],
-                            scenario: txData.scenario || 'live',
-                            timestamp_offset_seconds: 0,
-                            ai_explanation: txData.ai_explanation,
-                            receivedAt: Date.now(),
-                            status: 'scored'
-                        };
-
-                        setTransactions(prev => [newTx, ...prev].slice(0, 50));
-                    }
-                } catch (e) {
-                    console.error("Failed to parse WS message", e);
-                }
-            };
-
-            ws.onclose = () => {
-                setIsConnected(false);
-            };
-
-            ws.onerror = () => {
-                setIsConnected(false);
-                setError("WebSocket connection failed. Ensure backend is running at :8000");
-            };
-        } catch (e) {
-            setIsConnected(false);
-            setError("Unable to connect to streaming backend");
-        }
-    }, []);
-
-    useEffect(() => {
-        connectWebSocket();
-        return () => {
-            if (wsRef.current) wsRef.current.close();
+    const addTransaction = useCallback((tx: Transaction) => {
+        const enriched = {
+            ...tx,
+            receivedAt: tx.receivedAt ?? Date.now(),
+            status: tx.status ?? 'scored',
+            auto_held: tx.auto_held ?? tx.risk_score >= 80,
+            auto_monitored: tx.auto_monitored ?? (tx.risk_score >= 40 && tx.risk_score < 80),
         };
-    }, [connectWebSocket]);
 
-    // Handle Demo Mode Toggle
-    useEffect(() => {
-        if (isDemoMode && isConnected) {
-            startDemo();
+        const existingActions = getStoredActions();
+        const autoAction = existingActions.find(action =>
+            action.tx_id === enriched.hash && action.action.startsWith('AUTO_')
+        );
+
+        if (!autoAction && (enriched.auto_held || enriched.auto_monitored)) {
+            appendStoredAction({
+                id: Date.now(),
+                tx_id: enriched.hash,
+                action: enriched.auto_held ? 'AUTO_HOLD' : 'AUTO_MONITOR',
+                analyst_notes: enriched.auto_held ? 'Automatically held by demo risk engine' : 'Automatically flagged for monitoring',
+                actioned_at: new Date(enriched.receivedAt).toISOString(),
+                actioned_by: 'system',
+                tx_details: enriched,
+            });
         }
-    }, [isDemoMode, isConnected, startDemo]);
+
+        const stored = mergeTransactions([enriched]);
+        setTransactions(stored);
+    }, []);
+
+    const scheduleNextRef = useRef<() => void>(() => undefined);
+
+    const seedInitialTransactions = useCallback(() => {
+        const current = getStoredTransactions();
+        if (current.length > 0) {
+            const seen = new Set(current.map(tx => tx.id));
+            indexRef.current = mockTransactions.findIndex(tx => !seen.has(tx.id));
+            if (indexRef.current < 0) indexRef.current = mockTransactions.length;
+            setTransactions(current);
+            return;
+        }
+
+        const initial = mockTransactions.slice(0, 3).map(tx => ({
+            ...tx,
+            receivedAt: Date.now() - (90 - tx.timestamp_offset_seconds) * 1000,
+        }));
+        clearStoredTransactions();
+        const stored = mergeTransactions(initial.reverse());
+        setTransactions(stored);
+        indexRef.current = 3;
+    }, []);
+
+    const scheduleNext = useCallback(() => {
+        if (!isPlaying || !isDemoMode) {
+            return;
+        }
+
+        if (indexRef.current >= mockTransactions.length) {
+            if (playbackConfig.loop) {
+                timerRef.current = setTimeout(() => {
+                    clearStoredTransactions();
+                    setTransactions([]);
+                    indexRef.current = 0;
+                    scheduleNextRef.current();
+                }, playbackConfig.loop_delay_seconds * 1000);
+            }
+            return;
+        }
+
+        const currentTx = mockTransactions[indexRef.current];
+        const nextTx = mockTransactions[indexRef.current + 1];
+
+        addTransaction(currentTx);
+        indexRef.current += 1;
+
+        if (!nextTx) {
+            scheduleNextRef.current();
+            return;
+        }
+
+        const delay = (nextTx.timestamp_offset_seconds - currentTx.timestamp_offset_seconds) * 1000;
+        const adjustedDelay = Math.max(800, Math.min(delay, 4000));
+        timerRef.current = setTimeout(() => scheduleNextRef.current(), adjustedDelay);
+    }, [addTransaction, isDemoMode, isPlaying]);
+
+    scheduleNextRef.current = scheduleNext;
+
+    const stop = useCallback(() => {
+        setIsPlaying(false);
+        stopTimers();
+    }, [stopTimers]);
+
+    const start = useCallback(() => {
+        setIsPlaying(true);
+        setIsConnected(true);
+        setError(null);
+        stopTimers();
+        scheduleNextRef.current();
+    }, [stopTimers]);
 
     const resetFeed = useCallback(() => {
+        stop();
+        clearStoredTransactions();
+        indexRef.current = 0;
         setTransactions([]);
+        seedInitialTransactions();
         if (isDemoMode) {
-            startDemo();
+            setTimeout(() => {
+                setIsPlaying(true);
+                scheduleNextRef.current();
+            }, 250);
         }
-    }, [isDemoMode, startDemo]);
+    }, [isDemoMode, seedInitialTransactions, stop]);
+
+    const setDemoMode = useCallback((next: boolean | ((value: boolean) => boolean)) => {
+        setIsDemoModeState(prev => {
+            const resolved = typeof next === 'function' ? next(prev) : next;
+            if (resolved) {
+                setIsPlaying(true);
+                setTimeout(() => scheduleNextRef.current(), 50);
+            } else {
+                stop();
+            }
+            return resolved;
+        });
+    }, [stop]);
+
+    useEffect(() => {
+        seedInitialTransactions();
+        const startDelay = setTimeout(() => {
+            if (isDemoMode) {
+                scheduleNextRef.current();
+            }
+        }, 1200);
+
+        return () => {
+            clearTimeout(startDelay);
+            stopTimers();
+        };
+    }, [isDemoMode, seedInitialTransactions, stopTimers]);
+
+    useEffect(() => onSessionUpdate(syncFromStorage), [syncFromStorage]);
 
     return {
         transactions,
         isConnected,
         isDemoMode,
-        setDemoMode: setIsDemoMode,
+        setDemoMode,
         resetFeed,
-        error
+        error,
+        addTransaction,
+        start,
+        stop,
     };
 }

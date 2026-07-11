@@ -4,6 +4,7 @@ import { truncateAddress, formatEth, timeAgo, getRiskTier, getRiskColor } from '
 import { walletLabels } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Activity, ArrowRight, Clock3 } from 'lucide-react';
 import HashLink from '@/components/HashLink';
 
 interface TransactionFeedProps {
@@ -16,13 +17,16 @@ interface TransactionFeedProps {
 export default memo(function TransactionFeed({ transactions, selectedTxId, onSelect, actionLog }: TransactionFeedProps) {
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b">
-                <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    Live Transaction Feed
-                </h2>
-                <span className="text-xs font-mono text-muted-foreground">
+            <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b">
+                <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    <h2 className="text-xs font-semibold uppercase text-muted-foreground">
+                        Transaction Feed
+                    </h2>
+                </div>
+                <Badge variant="outline" className="h-6 rounded-sm font-mono text-[10px]">
                     {transactions.length} txns
-                </span>
+                </Badge>
             </div>
 
             <ScrollArea className="flex-1 overflow-hidden">
@@ -31,7 +35,7 @@ export default memo(function TransactionFeed({ transactions, selectedTxId, onSel
                         <p className="text-sm text-muted-foreground">Waiting for transactions…</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/80">
                         {transactions.map((tx, i) => {
                             const tier = getRiskTier(tx.risk_score);
                             const color = getRiskColor(tier);
@@ -42,13 +46,13 @@ export default memo(function TransactionFeed({ transactions, selectedTxId, onSel
                                 <button
                                     key={`${tx.id}-${i}`}
                                     onClick={() => onSelect(tx)}
-                                    className={`w-full text-left px-5 py-3.5 transition-colors duration-150 ${isSelected
-                                        ? 'bg-accent/60 border-l-2'
-                                        : 'border-l-2 border-transparent hover:bg-accent/30'
+                                    className={`w-full text-left px-5 py-4 transition-colors duration-150 ${isSelected
+                                        ? 'bg-primary/10 border-l-2'
+                                        : 'border-l-2 border-transparent hover:bg-accent/25'
                                         } ${i === 0 ? 'animate-slide-in' : ''}`}
                                     style={{ borderLeftColor: isSelected ? color : 'transparent' }}
                                 >
-                                    <div className="flex items-center justify-between gap-4">
+                                    <div className="grid grid-cols-[1fr_auto] gap-3 xl:grid-cols-[1fr_96px_112px] xl:items-center">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
                                                 <span className="font-mono text-sm text-foreground">
@@ -60,8 +64,9 @@ export default memo(function TransactionFeed({ transactions, selectedTxId, onSel
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-xs text-muted-foreground block mb-1">
-                                                → {truncateAddress(tx.to)}
+                                            <span className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                                                <ArrowRight className="h-3 w-3" />
+                                                {truncateAddress(tx.to)}
                                             </span>
                                             <HashLink hash={tx.hash} />
                                         </div>
@@ -75,40 +80,39 @@ export default memo(function TransactionFeed({ transactions, selectedTxId, onSel
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col items-end gap-1.5 shrink-0 ml-1">
-                                            <div className="flex items-center gap-1.5">
-                                                {/* Manual Action Badges */}
+                                        <div className="col-span-2 flex items-center justify-between gap-2 xl:col-span-1 xl:flex-col xl:items-end xl:justify-center xl:gap-1.5">
+                                            <div className="flex flex-wrap items-center justify-end gap-1.5">
                                                 {actionLog?.get(tx.id) === 'hold' && (
-                                                    <Badge variant="destructive" className="text-[9px] h-4 px-1.5 uppercase font-bold bg-red-900 border-red-500">
+                                                    <Badge variant="destructive" className="h-5 rounded-sm px-1.5 text-[9px] uppercase font-bold">
                                                         HELD
                                                     </Badge>
                                                 )}
                                                 {actionLog?.get(tx.id) === 'monitor' && (
-                                                    <Badge className="bg-yellow-600 text-white text-[9px] h-4 px-1.5 uppercase font-bold">
+                                                    <Badge className="h-5 rounded-sm bg-amber-500 text-[9px] font-bold uppercase text-black">
                                                         WATCHED
                                                     </Badge>
                                                 )}
 
-                                                {/* Automated Action Badges (only if not manually held) */}
                                                 {tx.auto_held && actionLog?.get(tx.id) !== 'hold' && (
-                                                    <Badge variant="destructive" className="text-[9px] h-4 px-1 px-1.5 uppercase font-bold animate-pulse">
+                                                    <Badge variant="destructive" className="h-5 rounded-sm px-1.5 text-[9px] uppercase font-bold">
                                                         AUTO-HELD
                                                     </Badge>
                                                 )}
                                                 {tx.auto_monitored && actionLog?.get(tx.id) !== 'monitor' && (
-                                                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] h-4 px-1.5 uppercase font-bold">
-                                                        AUTO-MONITORED
+                                                    <Badge className="h-5 rounded-sm bg-orange-500 text-[9px] uppercase text-white">
+                                                        MONITOR
                                                     </Badge>
                                                 )}
                                                 <Badge
                                                     variant={tier === 'critical' ? 'destructive' : tier === 'medium' ? 'secondary' : 'outline'}
-                                                    className="font-mono text-[11px] px-2 h-5"
+                                                    className="h-6 rounded-sm px-2 font-mono text-[11px]"
                                                     style={tier === 'low' ? { color, borderColor: `${color}40` } : undefined}
                                                 >
                                                     {tx.risk_score}
                                                 </Badge>
                                             </div>
-                                            <span className="text-[11px] text-muted-foreground">
+                                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                <Clock3 className="h-3 w-3" />
                                                 {tx.receivedAt ? timeAgo(tx.receivedAt) : `+${tx.timestamp_offset_seconds}s`}
                                             </span>
                                         </div>

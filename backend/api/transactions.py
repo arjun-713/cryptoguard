@@ -161,7 +161,7 @@ async def broker_withdraw(body: dict):
     from config import settings
     from risk.scorer import score_transaction as risk_score_transaction
     from blockchain.enricher import enrich_transaction
-    from api.actions import log_action
+    from backend.api.actions import log_action
     from db.models import ActionType
 
     sender = body.get("sender") or body.get("from_address")
@@ -271,6 +271,7 @@ async def broker_withdraw(body: dict):
         "tier": tier,
         "risk_score": score,
         "risk_tier": tier,
+        "transaction": enriched_tx,
         "reason": f"Transaction score is {score}/100 based on {len(triggered)} suspicious signals.",
         "action_id": action_id,
         "triggered_rules": triggered,
